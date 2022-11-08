@@ -4,6 +4,7 @@ from annotation.components.Menu import Menu
 from annotation.components.message.Messenger import Messenger
 from annotation.core.ArchHandler import ArchHandler
 from annotation.utils.metaclasses import AbstractQObjectMeta
+from annotation.utils.ScreenObserver import ScreenObserver
 
 
 class Screen(QtGui.QWidget, metaclass=AbstractQObjectMeta):
@@ -15,6 +16,8 @@ class Screen(QtGui.QWidget, metaclass=AbstractQObjectMeta):
              parent (annotation.screens.Container.Container): screen container
         """
         super(Screen, self).__init__()
+        self.screen_observer = ScreenObserver()
+        self.screen_observer.add(self)
         self.container = parent
         self.arch_handler = ArchHandler()
         self.layout = QtGui.QGridLayout(self)
@@ -37,6 +40,7 @@ class Screen(QtGui.QWidget, metaclass=AbstractQObjectMeta):
             self.container.layout.removeWidget(self)
             self.deleteLater()
             self.container.screen = None
+            self.screen_observer.remove(self)
 
     @abstractmethod
     def next_screen(self):

@@ -6,6 +6,7 @@ from annotation.core.ArchHandler import ArchHandler
 from annotation.utils.ContrastStretching import ContrastStretching
 from annotation.utils.qt import numpy2pixmap
 from annotation.controlpanels.ControlPanel import ControlPanel
+from annotation.utils.ScreenObserver import ScreenObserver
 
 
 class DialogHUSettings(QtWidgets.QDialog):
@@ -17,6 +18,7 @@ class DialogHUSettings(QtWidgets.QDialog):
             parent (QtGui.QWidget): parent widget
         """
         super(DialogHUSettings, self).__init__(parent)
+        self.screen_observer = ScreenObserver()
 
         self.setWindowTitle("Hounsfield Units thresholds")
         self.setMinimumWidth(500)
@@ -49,6 +51,9 @@ class DialogHUSettings(QtWidgets.QDialog):
     def update_test_image(self):
         """Updates the test image"""
         self.test_image_label.setPixmap(numpy2pixmap(self.test_image))
+
+        # Update every screen
+        self.screen_observer.update()
 
     def min_slider_changed_handler(self):
         """Handles min slider changes"""
