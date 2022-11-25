@@ -7,7 +7,6 @@ from annotation.controlpanels.AnnotationControlPanel import AnnotationControlPan
 from annotation.visualization.panorex import CanvasPanorex
 from annotation.visualization.sidevolume import CanvasSideVolume
 
-
 class AnnotationScreen(Screen):
     def __init__(self, parent):
         super().__init__(parent)
@@ -90,6 +89,7 @@ class AnnotationScreen(Screen):
                               auto_propagate=self.panel.auto_acquire_annotation.isChecked(),
                               show_mask_spline=self.panel.show_mask_spline.isChecked(),
                               show_cp_boxes=self.panel.show_cp_boxes.isChecked(),
+                              normalize_mouse_hover=self.panel.normalize_mouse_hover.isChecked(),
                               )
 
     def connect_signals(self):

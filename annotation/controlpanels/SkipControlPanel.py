@@ -12,10 +12,16 @@ class SkipControlPanel(ControlPanel):
         self.skip.valueChanged.connect(self.updateImagesCount)
         self.layout.insertRow(0, QtWidgets.QLabel("Skipped images"), self.skip)
 
+        self.n_images = -1
         self.imgs_count = QtWidgets.QLabel("")
         self.updateImagesCount()
 
+    def setNImages(self, n_images):
+        self.n_images = n_images
+
     def setSkipMaximum(self, new_maximum):
+        if new_maximum > 5:
+            new_maximum = 5
         maximum = self.skip.maximum()
         if maximum == 0 or maximum != new_maximum:
             self.skip.setMaximum(new_maximum)
@@ -25,7 +31,7 @@ class SkipControlPanel(ControlPanel):
         self.updateImagesCount()
 
     def updateImagesCount(self):
-        count = int(self.skip.maximum() / (self.skip.value() + 1))
+        count = int(self.n_images / (self.skip.value() + 1))
         self.imgs_count = QtWidgets.QLabel(str(count))
         self.layout.removeRow(1)
         self.layout.insertRow(1, QtWidgets.QLabel("Number of images"), self.imgs_count)

@@ -1,4 +1,4 @@
-from PyQt5 import QtWidgets, QtCore
+from PyQt5 import QtWidgets, QtCore, QtGui
 from annotation.controlpanels.SkipControlPanel import SkipControlPanel
 from annotation.screens.AnnotationScreen import AnnotationScreen
 from annotation.screens.Screen import Screen
@@ -16,22 +16,23 @@ class PanorexSplineScreen(Screen):
 
         # arch view
         self.archview = ArchView(self)
+
         self.layout.addWidget(self.archview, 0, 0)
 
         # panorex
         self.panorex = CanvasPanorex(self)
-        self.layout.addWidget(self.panorex, 0, 1)
+        self.layout.addWidget(self.panorex, 1, 0)
 
         # sparsity selector
         self.panel = SkipControlPanel()
         self.panel.skip_changed.connect(self.skip_changed_handler)
-        self.layout.addWidget(self.panel, 1, 0, 1, 2)
+        self.layout.addWidget(self.panel, 2, 0)
 
         # continue button
         self.confirm_button = QtWidgets.QPushButton(self, text="Confirm (C)")
         self.confirm_button.setShortcut("C")
         self.confirm_button.clicked.connect(self.panorex_spline_selected.emit)
-        self.layout.addWidget(self.confirm_button, 1, 2)
+        self.layout.addWidget(self.confirm_button, 3, 0)
 
     def initialize(self):
         self.mb.enable_save_load(True)
@@ -39,7 +40,10 @@ class PanorexSplineScreen(Screen):
         self.panorex.set_img()
         self.panorex.set_can_edit_spline(not self.arch_handler.gt_extracted)
         max_ = len(self.arch_handler.arch.get_arch()) - 1
-        self.panel.setSkipMaximum(max_)
+
+        # It shouldn't be possible to skip more than 5 images
+        self.panel.setNImages(max_)
+        self.panel.setSkipMaximum(5)
         self.panel.setSkipValue(self.arch_handler.annotation_masks.skip)
 
     def skip_changed_handler(self, skip):

@@ -43,6 +43,13 @@ class AnnotationControlPanel(ControlPanel):
         self.auto_acquire_annotation.clicked.connect(self.flags_changed.emit)
         self.layout.addRow(QtWidgets.QLabel(""), self.auto_acquire_annotation)
 
+        self.normalize_mouse_hover = QtWidgets.QCheckBox(
+            "Normalize area on mouse hover (N)")
+        self.normalize_mouse_hover.setChecked(False)
+        self.normalize_mouse_hover.setShortcut("N")
+        self.normalize_mouse_hover.clicked.connect(self.flags_changed.emit)
+        self.layout.addRow(QtWidgets.QLabel(""), self.normalize_mouse_hover)
+
         self.acquire_annotation = QtWidgets.QPushButton("Acquire annotation from previous/succeeding (A)")
         self.acquire_annotation.setShortcut("A")
         self.acquire_annotation.clicked.connect(self.acquire_annotation_clicked.emit)

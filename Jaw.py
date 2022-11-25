@@ -58,6 +58,7 @@ class Jaw:
         self.__normalize()
         self.gt_volume = self.__build_ann_volume()
         self.HU_volume = self.convert_01_to_HU(self.volume)
+        self.generated = None
 
     def merge_predictions(self, plane, pred):
         """

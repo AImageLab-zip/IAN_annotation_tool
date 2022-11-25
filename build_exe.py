@@ -22,7 +22,7 @@ ICON_PATH = os.path.join(PROJECT_DIR, "annotation", "images", "icon.ico")
 # if 'bdist_msi' in sys.argv:
 #     sys.argv += ['--initial-target-dir', r'C:\Program Files\{}'.format(APP_NAME)]
 
-version = "1.3"
+version = "1.4"
 
 
 def collect_dist_info(packages):
@@ -52,7 +52,7 @@ packages = ['sys', 'os', 'ctypes', 'platform', 'shutil', 'numpy', 'traits', 'tra
             'pyface', 'pyface.ui', 'pyface.ui.qt4', 'pkg_resources', 'pyface.qt.QtGui', 'pyface.qt.QtCore',
             'pkg_resources._vendor', 'pkg_resources.extern', "tvtk.pyface.ui.qt4", 'pygments', 'vtkmodules',
             'pyface.ui.qt4', 'pyface.qt', 'numpy', 'matplotlib', 'mayavi', 'traits', 'traitsui',
-            'scipy.linalg', 'pyqt5', 'pyface']
+            'scipy.linalg', 'PyQt5', 'pyface']
 
 
 def get_site_package(name):
@@ -81,7 +81,7 @@ build_exe_options = {
     "packages": packages,
     "excludes": ['tkinter', 'multiprocessing.Pool'],
     "includes": [],
-    "include_files": include_files
+    "include_files": include_files,
 }
 
 executable = Executable(
@@ -103,5 +103,5 @@ setup(name=APP_NAME,
 
 # fix multiprocessing Pool.pyc --> pool.pyc
 # from https://github.com/marcelotduarte/cx_Freeze/issues/353#issuecomment-376829379
-multiprocessing_dir = os.path.join("build", "exe.win-amd64-3.7", "lib", "multiprocessing")
+multiprocessing_dir = os.path.join("build", "exe.win-amd64-3.9", "lib", "multiprocessing")
 os.rename(os.path.join(multiprocessing_dir, "Pool.pyc"), os.path.join(multiprocessing_dir, "pool.pyc"))

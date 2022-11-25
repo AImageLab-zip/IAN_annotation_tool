@@ -149,7 +149,9 @@ class Menu(QtGui.QWidget, metaclass=QObjectSingletonMeta):
         self.options.addAction(HU_settings_action)
 
     def show_options(self):
-        DialogHUSettings().exec_()
+        self.dlg = DialogHUSettings()
+        # self.dlg.exec_() # Modal
+        self.dlg.show() # Modeless
 
     def disable_(self, menu):
         menu.setDisabled(True)

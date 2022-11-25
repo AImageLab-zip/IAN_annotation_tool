@@ -19,7 +19,7 @@ class SliceSelectionScreen(Screen):
         self.layout.addWidget(self.slider, 0, 1)
 
         # arch view
-        self.archview = ArchView(self)
+        self.archview = ArchView(self, from_annotations=True)
         self.layout.addWidget(self.archview, 0, 0)
 
         # arch checkbox
@@ -28,11 +28,17 @@ class SliceSelectionScreen(Screen):
         self.arch_line.toggled.connect(self.show_)
         self.layout.addWidget(self.arch_line, 1, 0)
 
+        # spline from generated checkbox
+        self.generated_arch = QtWidgets.QCheckBox("Generated Arch")
+        self.generated_arch.setChecked(True)
+        self.generated_arch.toggled.connect(self.change_to_generated_arch)
+        self.layout.addWidget(self.generated_arch, 1, 1)
+
         # confirm slice button
         self.confirm_button = QtWidgets.QPushButton(self, text="Confirm (C)")
         self.confirm_button.setShortcut("C")
         self.confirm_button.clicked.connect(self.confirm_check)
-        self.layout.addWidget(self.confirm_button, 1, 1)
+        self.layout.addWidget(self.confirm_button, 1, 2)
 
     def initialize(self):
         self.mb.enable_save_load(False)
@@ -41,6 +47,10 @@ class SliceSelectionScreen(Screen):
             max = self.arch_handler.Z - 1
             self.slider.setMaximum(max)
             self.slider.setValue(clip_range(96, 0, max))
+
+    def change_to_generated_arch(self):
+        self.archview.arch_handler.from_annotations = self.generated_arch.isChecked()
+        self.show_()
 
     def show_(self):
         self.archview.show_(slice_idx=self.slider.value(), show_arch=self.arch_line.isChecked())

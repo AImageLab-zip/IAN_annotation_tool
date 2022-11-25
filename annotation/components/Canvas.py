@@ -22,6 +22,8 @@ class Canvas(QtGui.QWidget, metaclass=AbstractQObjectMeta):
         self.container = parent
         self.img = None
         self.pixmap = None
+        self.setMouseTracking(True)
+        self.installEventFilter(self)
 
     def adjust_size(self):
         """Applies a fix to thw widget shape to show the image properly"""

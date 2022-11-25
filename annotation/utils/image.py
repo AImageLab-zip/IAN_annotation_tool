@@ -170,7 +170,6 @@ def active_contour_balloon(img, spline, debug=False, threshold='auto'):
         return None
     contours = sorted(contours, key=lambda x: cv2.contourArea(x), reverse=True)
     contour = np.squeeze(contours[0])
-
     return contour
 
 

@@ -21,6 +21,10 @@ from annotation.utils.math import clip_range, get_poly_approx_
 from annotation.utils.metaclasses import SingletonMeta
 from conf import labels as l
 
+from skimage.morphology import skeletonize
+from math import sqrt, floor, ceil
+from scipy.integrate import quad
+from scipy.optimize import fsolve
 
 class ArchHandler(Jaw, metaclass=SingletonMeta):
     LH_OFFSET = 50
@@ -28,6 +32,7 @@ class ArchHandler(Jaw, metaclass=SingletonMeta):
     ANNOTATED_DICOM_DIRECTORY = 'annotated_dicom'
     EXPORT_GT_VOLUME_FILENAME = 'gt_volume.npy'
     EXPORT_VOLUME_FILENAME = 'volume.npy'
+    EXPORT_GENERATED_FILENAME = 'generated.npy'
 
     SIDE_VOLUME_SCALE = 4  # desired scale of side_volume
 
@@ -79,6 +84,9 @@ class ArchHandler(Jaw, metaclass=SingletonMeta):
         self.canal = None
         self.gt_delaunay = np.zeros_like(self.gt_volume)
         self.gt_extracted = False
+        self.from_annotations = False
+
+        self.import_gen_volume()
 
     ####################
     # ATTRIBUTE UPDATE #
@@ -101,7 +109,10 @@ class ArchHandler(Jaw, metaclass=SingletonMeta):
         else:
             self.selected_slice = selected_slice
             self.history.add(SliceChangedAction(selected_slice))
-            p, start, end = self.arch_detections.get(selected_slice)
+            if self.from_annotations:
+                p, start, end = self.get_arch_from_annotation()
+            else:
+                p, start, end = self.arch_detections.get(selected_slice)
             l_offset, coords, h_offset, derivative = processing.arch_lines(p, start, end, offset=self.LH_OFFSET)
             self.spline = Spline(coords=coords, num_cp=10)
             self.L_canal_spline = Spline()
@@ -328,6 +339,7 @@ class ArchHandler(Jaw, metaclass=SingletonMeta):
             (bool): save file presence
         """
         path = os.path.join(os.path.dirname(self.dicomdir_path), self.DUMP_FILENAME)
+        print(os.path.isfile(path))
         return os.path.isfile(path)
 
     def save_state(self):
@@ -385,6 +397,14 @@ class ArchHandler(Jaw, metaclass=SingletonMeta):
         """Imports gt_volume npy file and stores it in gt_volume attribute"""
         if os.path.isfile(os.path.join(os.path.dirname(self.dicomdir_path), self.EXPORT_GT_VOLUME_FILENAME)):
             self.gt_volume = np.load(os.path.dirname(self.dicomdir_path), self.EXPORT_GT_VOLUME_FILENAME)
+
+    def import_gen_volume(self):
+        """Import generated npy file and stores it in generated attributed"""
+        if self.generated is not None: return
+        path = os.path.join(os.path.dirname(self.dicomdir_path), self.EXPORT_GENERATED_FILENAME)
+        if os.path.isfile(path):
+            self.generated = np.load(path)
+
 
     ################
     # LOAD FROM GT #
@@ -471,6 +491,64 @@ class ArchHandler(Jaw, metaclass=SingletonMeta):
             shape = (len(self.side_coords), self.Z, max([len(points) for points in self.side_coords]))
             self.annotation_masks = AnnotationMasks(shape, self)
             self.annotation_masks.load_mask_splines(check_shape=False)
+
+    def get_arch_from_annotation(self):
+        # function that given N params, return the polynomial function
+        # of the derivative of a polynomial of grade N-1
+        # e.g.: poly_diff_param([a,b,c]) returns f(t): 2at + b
+        def poly_diff_param(params):
+            def poly_diff(t):
+                dx = 1
+                dy = 0
+                for g, p in enumerate(params[::-1]):
+                    if g == 0: continue
+                    dy += g * p * t ** (g - 1)
+                return sqrt(dx * dx + dy * dy)
+            return poly_diff
+
+        def curve_length(t0, S, length):
+            return quad(S, 0, t0)[0] - length
+
+        def solve_t(curve_diff, length):
+            return fsolve(curve_length, 0.0, (curve_diff, length))[0]
+
+        # generated > 0.5 during loading
+        # project the 3D volume on a 2D slice, vertically
+        plane_projection = np.where(self.generated.sum(axis=0) > 0, 1, 0)
+        plane_projection = plane_projection.astype(np.uint8)
+        # get the largest connected components, background not included
+        ncc, labels, stats, centroid = cv2.connectedComponentsWithStats(plane_projection, 8)
+        stats[0, -1] = 0 # remove background by setting it's area to zero
+
+        canal_cc = (stats[:, -1] > 100).nonzero()[0] # keep the components that have an area > 100
+        canal_cc = canal_cc[:, None, None]
+        labels = labels[None, :, :]
+
+        labels = (labels == canal_cc[:, None, None]).any(axis=0).squeeze().astype(np.uint8)
+        skeleton = skeletonize(labels)
+
+        # compute the polynomial curve that approximate the skeleton
+        POLY_GRADE = 3
+        x, y = np.where(skeleton)
+        params = np.polyfit(y, x, POLY_GRADE)
+        fn = np.poly1d(params)
+
+        #poly_diff = poly_diff_param(params)
+        #length = curve_length(skeleton.shape[1], poly_diff, 0)
+        #length = floor(length)
+        #coords = []
+
+        # compute the panorex
+        #for L in range(0, length, 1):
+        #    t = solve_t(poly_diff, L)
+        #    _x = t
+        #    _y = fn(t)
+        #    if _y >= skeleton.shape[0] or _y < 0: continue
+        #    if _x > skeleton.shape[1] or _x < 0: continue
+        #    coords.append([_x, _y])
+
+        #panorex = self.create_panorex(coords)
+        return fn, 0, plane_projection.shape[1]
 
     ###########
     # GETTERS #

@@ -10,11 +10,12 @@ from annotation.core.ArchHandler import ArchHandler
 
 
 class ArchView(Canvas):
-    def __init__(self, parent):
+    def __init__(self, parent, from_annotations=False):
         super(ArchView, self).__init__(parent)
         self.arch_handler = ArchHandler()
         self.slice_idx = 0
         self.show_arch = True
+        self.arch_handler.from_annotations = from_annotations
 
     def set_img(self):
         self.img = self.arch_handler.volume[self.slice_idx]
@@ -22,9 +23,16 @@ class ArchView(Canvas):
         self.adjust_size()
 
     def draw(self, painter):
-        p, start, end = self.arch_handler.arch_detections.get(self.slice_idx)
         self.draw_background(painter)
-        if self.show_arch:
+        if self.show_arch and self.arch_handler.from_annotations and self.arch_handler.generated is None:
+            print('Can\'t compute arch and spline from the generated volume as there is no generated file')
+            p, start, end = self.arch_handler.arch_detections.get(self.slice_idx)
+            self.draw_poly_approx(painter, p, start, end, col.ARCH_SPLINE)
+        elif self.show_arch and self.arch_handler.from_annotations:
+            p, start, end = self.arch_handler.get_arch_from_annotation()
+            self.draw_poly_approx(painter, p, start, end, col.ARCH_SPLINE)
+        elif self.show_arch:
+            p, start, end = self.arch_handler.arch_detections.get(self.slice_idx)
             self.draw_poly_approx(painter, p, start, end, col.ARCH_SPLINE)
 
     def show_(self, slice_idx=0, show_arch=True):

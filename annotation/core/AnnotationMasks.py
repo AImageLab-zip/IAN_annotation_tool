@@ -18,7 +18,7 @@ class AnnotationMasks():
     EXPORT_MASK_VOLUME_FILENAME = "masks.npy"
     EXPORT_SIDE_VOLUME_FILENAME = "imgs.npy"
     MASKS_SPLINES_DUMP_FILENAME = "masks_splines_dump.json"
-    NUM_CP_LOSS = 10  # higher value means less control points and implies a loss in the spline's precision
+    NUM_CP_LOSS = 30  # higher value means less control points and implies a loss in the spline's precision
 
     def __init__(self, shape, arch_handler):
         """

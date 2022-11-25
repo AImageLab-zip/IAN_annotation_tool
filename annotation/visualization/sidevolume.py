@@ -18,6 +18,7 @@ class CanvasSideVolume(SplineCanvas):
         self.arch_handler = ArchHandler()
         self.current_pos = 0
         self.r = 3
+        self.mouse_pos = (0,0)
 
         # flags
         self.show_dot = False
@@ -28,9 +29,13 @@ class CanvasSideVolume(SplineCanvas):
         # action
         self.action = None
 
-    def set_img(self):
+        # contrast stretching square size
+        self.squareSize = [30, 30]
+
+
+    def set_img(self, mousePos=None):
         self.img = self.arch_handler.get_side_volume_slice(self.current_pos)
-        self.pixmap = numpy2pixmap(self.img)
+        self.pixmap = numpy2pixmap(self.img, mousePos, self.squareSize)
         self.adjust_size()
 
     def paintEvent(self, e):
@@ -150,11 +155,15 @@ class CanvasSideVolume(SplineCanvas):
         if not self._can_edit_spline:
             return
 
-        spline = self.arch_handler.annotation_masks.get_mask_spline(self.current_pos)
-        if spline is None:
-            return
+        if self.normalize_mouse_hover:
+            self.mouse_pos = (QMouseEvent.pos().x(), QMouseEvent.pos().y())
+            self.set_img(self.mouse_pos)
 
-        if self.drag_point is not None:
+        spline = self.arch_handler.annotation_masks.get_mask_spline(self.current_pos)
+        # if spline is None:
+        #     return
+
+        if self.drag_point is not None and spline is not None:
             cp_index, (offset_x, offset_y) = self.drag_point
             new_x = QMouseEvent.pos().x() - WIDGET_MARGIN + offset_x
             new_y = QMouseEvent.pos().y() - WIDGET_MARGIN + offset_y
@@ -171,14 +180,34 @@ class CanvasSideVolume(SplineCanvas):
 
             # Redraw curve
             self.update()
+            return
 
-    def show_(self, pos=0, show_dot=False, auto_propagate=False, show_mask_spline=False, show_cp_boxes=True):
+        self.update()
+
+    def wheelEvent(self, event):
+        multiplier = 1 if event.angleDelta().y() > 0 else -1
+        modifiers = QtWidgets.QApplication.keyboardModifiers()
+        if modifiers == QtCore.Qt.ShiftModifier or modifiers == (QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier):
+            self.squareSize[0] += 1*multiplier
+        if modifiers == QtCore.Qt.ControlModifier or modifiers == (QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier):
+            self.squareSize[1] += 1 * multiplier
+        if self.squareSize[0] < 1: self.squareSize[0] = 1
+        if self.squareSize[1] < 1: self.squareSize[1] = 1
+
+        self.set_img(self.mouse_pos)
+        self.update()
+
+    def show_(self, pos=0, show_dot=False, auto_propagate=False, show_mask_spline=False, show_cp_boxes=True, normalize_mouse_hover=True):
         self.current_pos = pos
         self.show_dot = show_dot
         self.auto_propagate = auto_propagate
         self.show_mask_spline = show_mask_spline
         self.show_cp_boxes = show_cp_boxes
-        self.set_img()
+        self.normalize_mouse_hover = normalize_mouse_hover
+        if self.normalize_mouse_hover is not None:
+            self.set_img(self.mouse_pos)
+        else:
+            self.set_img()
         self.update()
 
 
