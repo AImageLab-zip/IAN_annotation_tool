@@ -98,7 +98,7 @@ class CanvasSideVolume(SplineCanvas):
             return
         color = QtGui.QColor(col.L_CANAL_SPLINE if LR == "L" else col.R_CANAL_SPLINE)
         painter.setPen(color)
-        painter.drawPoint(WIDGET_MARGIN + self.pixmap.width() // 2, z)
+        painter.drawPoint(WIDGET_MARGIN + self.pixmap.width() // 2, int(z))
         color.setAlpha(120)
         painter.setBrush(color)
         painter.drawEllipse(QtCore.QPoint(x, z), self.r, self.r)

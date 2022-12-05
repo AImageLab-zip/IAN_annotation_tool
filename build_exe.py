@@ -99,6 +99,9 @@ include_files.append(get_site_package('mpl_toolkits'))
 distutils_path = os.path.join(os.path.dirname(opcode.__file__), 'distutils')
 include_files.append((distutils_path, 'distutils'))
 
+# add guide.pdf
+include_files.append(('guide.pdf', 'guide.pdf'))
+
 print(include_files)
 
 build_exe_options = {
