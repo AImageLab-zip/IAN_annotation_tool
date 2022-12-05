@@ -19,7 +19,7 @@ class SliceSelectionScreen(Screen):
         self.layout.addWidget(self.slider, 0, 1)
 
         # arch view
-        self.archview = ArchView(self, from_annotations=True)
+        self.archview = ArchView(self)
         self.layout.addWidget(self.archview, 0, 0)
 
         # arch checkbox
@@ -30,9 +30,9 @@ class SliceSelectionScreen(Screen):
 
         # spline from generated checkbox
         self.generated_arch = QtWidgets.QCheckBox("Generated Arch")
-        self.generated_arch.setChecked(True)
+        self.generated_arch.setChecked(False)
         self.generated_arch.toggled.connect(self.change_to_generated_arch)
-        self.layout.addWidget(self.generated_arch, 1, 1)
+        self.layout.addWidget(self.generated_arch, 2, 0)
 
         # confirm slice button
         self.confirm_button = QtWidgets.QPushButton(self, text="Confirm (C)")

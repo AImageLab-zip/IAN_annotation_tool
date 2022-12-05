@@ -25,7 +25,7 @@ class ArchView(Canvas):
     def draw(self, painter):
         self.draw_background(painter)
         if self.show_arch and self.arch_handler.from_annotations and self.arch_handler.generated is None:
-            print('Can\'t compute arch and spline from the generated volume as there is no generated file')
+            print('Can\'t compute spline from the generated volume as there is no generated file')
             p, start, end = self.arch_handler.arch_detections.get(self.slice_idx)
             self.draw_poly_approx(painter, p, start, end, col.ARCH_SPLINE)
         elif self.show_arch and self.arch_handler.from_annotations:
@@ -45,12 +45,13 @@ class ArchView(Canvas):
 class SplineArchView(SplineCanvas):
     spline_changed = QtCore.pyqtSignal()
 
-    def __init__(self, parent):
+    def __init__(self, parent, show_LH_arch=True):
         super().__init__(parent)
         self.arch_handler = ArchHandler()
         self.selected_slice = None
         self.current_pos = None
         self.action = None  # action in progress
+        self.show_LH_arch = show_LH_arch
 
     def set_img(self):
         self.selected_slice = self.arch_handler.selected_slice
@@ -73,16 +74,17 @@ class SplineArchView(SplineCanvas):
 
         # draw arches
         self.draw_arch(painter, self.arch_handler.arch, col.PANO_SPLINE)
-        self.draw_arch(painter, l_pano, col.PANO_OFF_SPLINE)
-        self.draw_arch(painter, h_pano, col.PANO_OFF_SPLINE)
-        self.draw_points(painter, l_offset, col.ARCH_OFF_SPLINE)
-        self.draw_points(painter, h_offset, col.ARCH_OFF_SPLINE)
+        if self.show_LH_arch:
+            self.draw_arch(painter, l_pano, col.PANO_OFF_SPLINE)
+            self.draw_arch(painter, h_pano, col.PANO_OFF_SPLINE)
+            self.draw_points(painter, l_offset, col.ARCH_OFF_SPLINE)
+            self.draw_points(painter, h_offset, col.ARCH_OFF_SPLINE)
 
         # draw spline with control points
         self.draw_spline(painter, self.arch_handler.spline, col.ARCH_SPLINE, cp_box_color=col.ARCH_SPLINE_CP)
 
         # draw side_coords
-        if self.current_pos is not None:
+        if self.current_pos is not None and self.show_LH_arch:
             if self.current_pos >= len(self.arch_handler.side_coords):
                 self.current_pos = len(self.arch_handler.side_coords) - 1
             self.draw_points(painter, self.arch_handler.side_coords[self.current_pos], col.POS)
@@ -143,7 +145,7 @@ class SplineArchView(SplineCanvas):
             # Redraw curve
             self.update()
 
-    def show_(self, pos=None):
+    def show_(self, pos=None, show_arch=True):
         self.current_pos = pos
         if self.selected_slice != self.arch_handler.selected_slice:
             self.set_img()

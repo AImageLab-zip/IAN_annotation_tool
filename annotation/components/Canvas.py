@@ -24,6 +24,22 @@ class Canvas(QtGui.QWidget, metaclass=AbstractQObjectMeta):
         self.pixmap = None
         self.setMouseTracking(True)
         self.installEventFilter(self)
+        self.zoom = 1
+        self.zoom_pos = [0,0]
+
+    def xy_to_xzyz(self, x, y):
+        if x is not None:
+            x = (x - self.zoom_pos[0]) * self.zoom
+        if y is not None:
+            y = (y - self.zoom_pos[1]) * self.zoom
+        return x, y
+
+    def xzyz_to_xy(self, x, y):
+        if x is not None:
+            x = x / self.zoom + self.zoom_pos[0]
+        if y is not None:
+            y = y / self.zoom + self.zoom_pos[1]
+        return x, y
 
     def adjust_size(self):
         """Applies a fix to thw widget shape to show the image properly"""
@@ -31,6 +47,15 @@ class Canvas(QtGui.QWidget, metaclass=AbstractQObjectMeta):
             return
         self.setFixedSize(self.img.shape[1] + self.MARGIN,
                           self.img.shape[0] + self.MARGIN)
+
+    def set_zoom(self, zoom):
+        zoom = min(max(1, zoom), 30)
+        self.zoom = zoom
+
+    def set_zoom_pos(self, x, y):
+        if x < 0: x = 0
+        if y < 0: y = 0
+        self.zoom_pos = [x, y]
 
     def paintEvent(self, e):
         qp = QtGui.QPainter()
@@ -63,7 +88,7 @@ class Canvas(QtGui.QWidget, metaclass=AbstractQObjectMeta):
             return
         x_set = list(range(int(start), int(end)))
         y_set = [p(x) for x in x_set]
-        points = [(x, y) for x, y in zip(x_set, y_set)]
+        points = [(x, y) for x, y in zip(x_set, y_set) if y >= 0]
         self.draw_points(painter, points, color, offsetXY)
 
     def draw_line_between_points(self, painter, p1, p2, color, offsetXY=WIDGET_MARGIN):
@@ -98,6 +123,7 @@ class Canvas(QtGui.QWidget, metaclass=AbstractQObjectMeta):
         """
         painter.setPen(color)
         for x, y in points:
+            x, y = self.xy_to_xzyz(x, y)
             x += offsetXY
             y += offsetXY
             try:
@@ -190,8 +216,10 @@ class SplineCanvas(Canvas, metaclass=AbstractQObjectMeta):
             brush.setAlpha(120)
             painter.setBrush(brush)
             for idx, (x, y) in enumerate(spline.cp):
-                rect_x = int((x + offsetXY) - (self.l // 2))
-                rect_y = int((y + offsetXY) - (self.l // 2))
+                x, y = self.xy_to_xzyz(x, y)
+                x, y = x  + offsetXY, y  + offsetXY
+                rect_x = int(x - (self.l // 2))
+                rect_y = int(y - (self.l // 2))
                 painter.drawRect(rect_x, rect_y, self.l, self.l)
                 show_cp_idx and painter.drawText(rect_x, rect_y, str(idx))
 
@@ -208,7 +236,11 @@ class SplineCanvas(Canvas, metaclass=AbstractQObjectMeta):
         if spline is None:
             return
 
-        p, start, end = spline.get_poly_spline()
+        p, start, end = spline.get_poly_spline(degree=12)
+        if spline_color == col.L_CANAL_SPLINE:
+            start = 0
+        else:
+            end = self.img.shape[-1]
         self.draw_poly_approx(painter, p, start, end, spline_color)
         return p, start, end
 

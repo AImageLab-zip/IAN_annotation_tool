@@ -2,7 +2,7 @@ from PyQt5 import QtWidgets, QtCore, QtGui
 from annotation.controlpanels.SkipControlPanel import SkipControlPanel
 from annotation.screens.AnnotationScreen import AnnotationScreen
 from annotation.screens.Screen import Screen
-from annotation.visualization.archview import ArchView
+from annotation.visualization.archview import SplineArchView
 from annotation.visualization.panorex import CanvasPanorex
 
 
@@ -15,8 +15,8 @@ class PanorexSplineScreen(Screen):
         self.current_pos = 0
 
         # arch view
-        self.archview = ArchView(self)
-
+        self.archview = SplineArchView(self, show_LH_arch=False)
+        self.archview.spline_changed.connect(self.spline_changed)
         self.layout.addWidget(self.archview, 0, 0)
 
         # panorex
@@ -38,20 +38,28 @@ class PanorexSplineScreen(Screen):
         self.mb.enable_save_load(True)
         self.arch_handler.offset_arch(pano_offset=0)
         self.panorex.set_img()
-        self.panorex.set_can_edit_spline(not self.arch_handler.gt_extracted)
+        # self.panorex.set_can_edit_spline(not self.arch_handler.gt_extracted)
+        self.panorex.set_can_edit_spline(True)
         max_ = len(self.arch_handler.arch.get_arch()) - 1
 
-        # It shouldn't be possible to skip more than 5 images
+        # It shouldn't be possible to skip more than 4 images
         self.panel.setNImages(max_)
-        self.panel.setSkipMaximum(5)
+        self.panel.setSkipMaximum(4)
         self.panel.setSkipValue(self.arch_handler.annotation_masks.skip)
+
+    def spline_changed(self):
+        self.arch_handler.update_coords()
+        self.arch_handler.compute_side_coords()
+        self.arch_handler.offset_arch()
+        self.arch_handler.update_splines()
+        self.show_()
 
     def skip_changed_handler(self, skip):
         self.arch_handler.annotation_masks.set_skip(skip)
 
     def show_(self):
-        self.panorex.show_()
         self.archview.show_(self.arch_handler.selected_slice, True)
+        self.panorex.show_()
 
     def connect_signals(self):
         self.panorex_spline_selected.connect(self.next_screen)

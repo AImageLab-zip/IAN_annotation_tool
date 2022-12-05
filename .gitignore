@@ -9,3 +9,4 @@ dataset
 dist
 build
 thesis_plots
+*.npy

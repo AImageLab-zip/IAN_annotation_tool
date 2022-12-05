@@ -14,7 +14,7 @@ class Window(QtGui.QMainWindow):
 
     def __init__(self):
         super(Window, self).__init__()
-
+        QtWidgets.qApp.installEventFilter(self)
         Messenger(QtMessageStrategy())
 
         self.setWindowTitle(self.WINDOW_TITLE)

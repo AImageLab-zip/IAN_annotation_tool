@@ -1,7 +1,7 @@
 import numpy as np
 import viewer
 import cv2
-
+from skimage.morphology import skeletonize
 
 def generate_side_coords(h_offset, l_offset, derivative, offset=100):
     """
@@ -88,7 +88,7 @@ def arch_detection(slice, debug=False):
 
     poly_x = [th / 20 for th in range(0, 20, 1)]
     poly_y = [score_func(arch, th) for th in poly_x]
-    th2score = np.poly1d(np.polyfit(poly_x, poly_y, 12))
+    th2score = np.poly1d(np.polyfit(poly_x, poly_y, 2))
 
     for _ in range(max_it):
         score = th2score(th)
@@ -132,6 +132,8 @@ def arch_detection(slice, debug=False):
 
     # compute skeleton
     skel = compute_skeleton(labels)
+    # For sure it's a better skeleton, but is it better for our scope?
+    # skimage_skel = skeletonize(labels)
     if debug:
         viewer.plot_2D(skel)
 
@@ -152,7 +154,7 @@ def arch_detection(slice, debug=False):
     coords = np.argwhere(skel > 0)
     y = [y for y, x in coords]
     x = [x for y, x in coords]
-    pol = np.polyfit(x, y, 12)
+    pol = np.polyfit(x, y, 2)
     p = np.poly1d(pol)
 
     # generating the curve for a check
@@ -167,7 +169,8 @@ def arch_detection(slice, debug=False):
         viewer.plot_2D(recon)
         viewer.plot_2D(original_rgb, cmap=None)
 
-    return p, min(x), max(x)
+    # return p, min(x), max(x)
+    return p, 0, skel.shape[1]
 
 
 def arch_lines(func, start, end, offset=50):
@@ -195,7 +198,9 @@ def arch_lines(func, start, end, offset=50):
     # we exploit the first order derivative to place values in X
     # so that f(X) is equally distant for each point in X
     while x < end:
-        coords.append((x, func(x)))
+        fx = func(x)
+        if fx > 0:
+            coords.append((x, fx))
         alfa = (func(x + delta / 2) - func(x - delta / 2)) / delta
         x = x + d * np.sqrt(1 / (alfa ** 2 + 1))
 

@@ -9,6 +9,7 @@ from annotation.components.message.Messenger import Messenger
 
 class SideVolume():
     SIDE_VOLUME_FILENAME = "side_volume.npy"
+    GT_SIDE_VOLUME_FILENAME = "gt_side_volume.npy"
     SIDE_COORDS_FILENAME = "side_coords.npy"
     COORDS_FILENAME = "coords.npy"
     PLANES_FILENAME = "planes.npy"
@@ -27,8 +28,10 @@ class SideVolume():
         self.scale = scale
         self.original = None
         self.data = None
+        self.gt = None
         self.correct = True
         self.planes = [None] * len(arch_handler.side_coords)
+        self.show_gt_or_generated_volume = False
         self.update()
 
     def is_there_data_to_load(self):
@@ -78,7 +81,10 @@ class SideVolume():
         dir = os.path.join(base, self.SAVE_DIRNAME)
         if not os.path.exists(dir):
             os.makedirs(dir)
+
+        # self.arch_handler.save_state()
         np.save(os.path.join(dir, self.SIDE_VOLUME_FILENAME), self.original)
+        np.save(os.path.join(dir, self.GT_SIDE_VOLUME_FILENAME), self.original_gt)
         np.save(os.path.join(dir, self.SIDE_COORDS_FILENAME), self.arch_handler.side_coords)
         np.save(os.path.join(dir, self.COORDS_FILENAME), np.asarray(self.arch_handler.coords))
         self._save_planes()
@@ -90,21 +96,25 @@ class SideVolume():
         sv = os.path.join(dir, self.SIDE_VOLUME_FILENAME)
         sc = os.path.join(dir, self.SIDE_COORDS_FILENAME)
         co = os.path.join(dir, self.COORDS_FILENAME)
-        if not os.path.isfile(sv) or not os.path.isfile(sc) or not os.path.isfile(co):
-            msg = "Could not load side volume: one or more of these files is missing ({}, {}, {})".format(
-                self.SIDE_VOLUME_FILENAME, self.SIDE_COORDS_FILENAME, self.COORDS_FILENAME)
+        gt = os.path.join(dir, self.GT_SIDE_VOLUME_FILENAME)
+        if not os.path.isfile(sv) or not os.path.isfile(sc) or not os.path.isfile(co) or not os.path.isfile(gt):
+            msg = "Could not load side volume: one or more of these files is missing ({}, {}, {}, {})".format(
+                self.SIDE_VOLUME_FILENAME, self.SIDE_COORDS_FILENAME, self.COORDS_FILENAME, self.GT_SIDE_VOLUME_FILENAME)
             print(msg)
             raise FileNotFoundError(msg)
+
         self._load_planes()
         sv_ = np.load(sv)
         sc_ = np.load(sc)
         co_ = np.load(co, allow_pickle=True)
+        gt_ = np.load(gt)
 
         if not np.array_equal(sc_, self.arch_handler.side_coords):
             msg = "Loaded side coords do not match with current side coords"
             print(msg)
             raise ValueError(msg)
         self.data = sv_
+        self.gt = gt_
         self.arch_handler.side_coords = sc_
         self.arch_handler.coords = (co_[0], co_[1], co_[2], co_[3])
         self._postprocess_data()
@@ -117,17 +127,22 @@ class SideVolume():
         """
         # rescaling the projection volume properly
         self.original = self.data
+        self.original_gt = self.gt
         width = int(self.data.shape[2] * self.scale)
         height = int(self.data.shape[1] * self.scale)
         scaled_side_volume = np.ndarray(shape=(self.data.shape[0], height, width))
+        scaled_gt_volume = np.ndarray(shape=(self.gt.shape[0], height, width))
 
         for i in range(self.data.shape[0]):
             scaled_side_volume[i] = cv2.resize(self.data[i, :, :], (width, height), interpolation=cv2.INTER_AREA)
+            scaled_gt_volume[i] = cv2.resize(self.gt[i, :, :], (width, height), interpolation=cv2.INTER_AREA)
 
         # padding the side volume and rescaling
         scaled_side_volume = cv2.normalize(scaled_side_volume, scaled_side_volume, 0, 1, cv2.NORM_MINMAX)
+        scaled_gt_volume = cv2.normalize(scaled_gt_volume, scaled_gt_volume, 0, 1, cv2.NORM_MINMAX)
         self.original = cv2.normalize(self.original, self.original, 0, 1, cv2.NORM_MINMAX)
         self.data = scaled_side_volume
+        self.gt = scaled_gt_volume
 
     def __update(self, step_fn=None):
         """
@@ -137,6 +152,7 @@ class SideVolume():
             scale (float): scale of side volume w.r.t. volume dimensions
         """
         self.data = self.arch_handler.line_slice(self.arch_handler.side_coords, step_fn=step_fn)
+        self.gt = np.zeros_like(self.data)
         self.planes = [None] * len(self.arch_handler.side_coords)
         for i, side_coord in enumerate(self.arch_handler.side_coords):
             self.planes[i] = Plane(self.arch_handler.Z, len(side_coord))
@@ -151,7 +167,7 @@ class SideVolume():
                                                        cancelable=False)
         self.messenger.loading_message("Saving views", self.save_)
 
-    def get_slice(self, pos):
+    def get_slice(self, pos, show_network_prediction=False):
         """
         Returns a slice of side volume at position pos
 
@@ -163,7 +179,12 @@ class SideVolume():
         """
         if self.data is None:
             return None
-        return self.data[pos]
+        data_slice = self.data[pos]
+        gt_slice = self.gt[pos]*0.3
+        if show_network_prediction:
+            return np.dstack([data_slice + gt_slice, data_slice, data_slice])
+        else:
+            return data_slice
 
     def get(self):
         """
@@ -249,7 +270,7 @@ class TiltedSideVolume(SideVolume):
         """Computes the tilted images on a give spline (left or right)"""
         if spline is None:
             return
-        p, start, end = spline.get_poly_spline()
+        p, start, end = spline.get_poly_spline(degree=12)
         derivative = np.polyder(p, 1)
         for x in range(self.data.shape[0]):
             if x in range(int(start), int(end)):
@@ -259,16 +280,19 @@ class TiltedSideVolume(SideVolume):
                 plane.from_line(side_coord)
                 angle = -np.degrees(np.arctan(derivative(x)))
                 plane.tilt_z(angle, p(x))
-                cut = self.arch_handler.plane_slice(plane)
+                volume_cut = self.arch_handler.plane_slice(plane)
+                gt_cut = self.arch_handler.plane_slice(plane, cut_gt=True)
                 debug and print("{}/{}".format(x, len(self.planes)), end='\r')
                 self.planes[x] = plane
-                self.data[x] = cut
+                self.data[x] = volume_cut
+                self.gt[x] = gt_cut
 
     def update(self):
         n = len(self.arch_handler.side_coords)
         h = self.arch_handler.Z
         w = max([len(points) for points in self.arch_handler.side_coords])
         self.data = np.zeros((n, h, w))
+        self.gt = np.zeros((n, h, w))
         completed = self.messenger.progress_message(func=self._compute_on_spline,
                                                     func_args={'spline': self.arch_handler.L_canal_spline},
                                                     message="Computing tilted views (L)",

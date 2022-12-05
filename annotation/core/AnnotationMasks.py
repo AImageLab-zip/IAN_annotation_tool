@@ -2,6 +2,7 @@ import json
 import os
 import numpy as np
 from datetime import datetime
+import cv2
 
 from annotation.actions.Action import SideVolumeSplineExtractedAction
 from annotation.components.message.Messenger import Messenger
@@ -134,7 +135,7 @@ class AnnotationMasks():
         self.masks[idx] = spline
         return spline
 
-    def get_mask_spline(self, idx, from_snake=False):
+    def get_mask_spline(self, idx, from_snake=False, from_prediction=False):
         """
         Getter for annotation at given index.
         If there is no annotation, but from_snake argument is True,
@@ -144,6 +145,23 @@ class AnnotationMasks():
             idx (int): index
             from_snake (bool): extract annotation automatically if not exists already
         """
+        if from_prediction is True and from_snake is True:
+            raise Exception('Both from_prediction and from_snake can\'t be true at the same time')
+
+        if self.masks[idx] is None and from_prediction is True:
+            # first channel dim is network_output + gt,
+            network_prediction = self.arch_handler.get_gt_volume_slice(idx).astype(np.uint8)
+            try:
+                contours, _ = cv2.findContours(network_prediction, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+            except:
+                return None
+            contours = sorted(contours, key=lambda x: cv2.contourArea(x), reverse=True)
+            contour = np.squeeze(contours[0])
+
+            self.set_mask_spline(idx, ClosedSpline(coords=contour, num_cp=(2*len(contour) // self.NUM_CP_LOSS)),
+                                 from_prediction)
+
+
         if self.masks[idx] is None and from_snake is True:
             step = self.skip + 1
             from_idx = idx - step

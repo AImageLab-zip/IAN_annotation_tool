@@ -20,7 +20,10 @@ class ArchDetections():
             i (int): slice
         """
         try:
-            self.data[i] = processing.arch_detection(self.arch_handler.volume[i])
+            if self.arch_handler.from_annotations:
+                self.data[i] = self.arch_handler.get_arch_from_annotation()
+            else:
+                self.data[i] = processing.arch_detection(self.arch_handler.volume[i])
         except:
             self.data[i] = None, None, None
 

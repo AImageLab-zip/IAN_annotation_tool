@@ -1,6 +1,7 @@
 import numpy as np
 from pyface.qt import QtGui
 from annotation.utils.ContrastStretching import ContrastStretching
+import cv2
 
 def numpy2pixmap(data, mousePos=None, squareSize=(30, 30)):
     """
@@ -13,6 +14,8 @@ def numpy2pixmap(data, mousePos=None, squareSize=(30, 30)):
     Returns:
         (pyface.qt.QtGui.QPixmap): pixmap of the image
     """
+    # img_ = cv2.resize(img_, (img_.shape[0] * 5, img_.shape[1] * 5), interpolation=cv2.INTER_AREA)
+
     img_ = np.clip(data, 0, 1)
     cs = ContrastStretching()
 
@@ -31,9 +34,14 @@ def numpy2pixmap(data, mousePos=None, squareSize=(30, 30)):
         if end_x < 0: end_x = 0
 
         cs_area = img_[start_y:end_y, start_x:end_x]
+
         if cs_area.shape[0] != 0 and cs_area.shape[1] != 0:
             area_max = np.max(cs_area)
             area_min = np.min(cs_area)
+            if len(cs_area.shape) == 3:
+                cs_area[:,:,0] = (cs_area[:,:,0] - cs_area[:,:,1])*0.2 + cs_area[:,:,1]
+                area_max = np.max(cs_area[:,:,1])
+                area_min = np.min(cs_area[:,:,1])
             # cs_area = cs_area > ((area_max+area_min)/2)
             cs_area = (cs_area - area_min)/(area_max - area_min)
             img_[start_y:end_y, start_x:end_x] = cs_area

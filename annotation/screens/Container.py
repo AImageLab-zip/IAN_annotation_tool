@@ -97,16 +97,16 @@ class Container(QtGui.QWidget):
     def autosave(self, autosave):
         self.arch_handler.history.set_autosave(autosave)
 
-    def load(self):
+    def load(self, show_error=True):
         def yes(self):
             self.arch_handler.load_state()
             self.loaded.emit()
 
         title = "Load"
         if self.arch_handler.is_there_data_to_load():
-            message = "Save data was found. Are you sure you want to discard current changes and load from disk?"
+            message = "Save data was found. You whish to load it? Any current changes will be discarded."
             self.messenger.question(title, message, lambda: yes(self), default="no")
-        else:
+        elif show_error:
             self.messenger.message(kind="information", title=title, message="Nothing to load")
 
     #######################
@@ -155,11 +155,15 @@ class Container(QtGui.QWidget):
         self.mb.enable_(self.mb.view)
         self.mb.enable_(self.mb.options)
 
+        def ask_load_then_transition(self):
+            self.transition_to(PanorexSplineScreen, w_extraction=True)
+            self.load(show_error=False)
+
         if self.arch_handler.get_gt_volume(labels=[l.CONTOUR, l.INSIDE]).any():
             title = "Ground truth available"
             message = "This DICOM has already annotations available. Would you like to use those as an initialization for the annotation?"
             self.messenger.question(title=title, message=message,
-                                    yes=lambda: self.transition_to(PanorexSplineScreen, w_extraction=True),
+                                    yes=lambda: ask_load_then_transition(self),
                                     no=lambda: ask_load(self),
                                     parent=self)
         else:

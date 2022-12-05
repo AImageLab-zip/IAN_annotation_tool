@@ -3,12 +3,16 @@ import os
 import scipy
 import skimage
 import opcode
+import sklearn
+import pywt
+import pydicom
+
 import sys
 
-if os.environ['VIRTUAL_ENV']:
-    VENV_DIR = os.environ['VIRTUAL_ENV']
-else:
-    VENV_DIR = os.path.dirname(os.path.dirname(os.__file__))
+#if os.environ['VIRTUAL_ENV']:
+#    VENV_DIR = os.environ['VIRTUAL_ENV']
+#else:
+VENV_DIR = os.path.dirname(os.path.dirname(os.__file__))
 
 LIB_DIR = os.path.join(VENV_DIR, "Lib")
 SITE_PACKAGES_DIR = os.path.join(LIB_DIR, "site-packages")
@@ -22,7 +26,7 @@ ICON_PATH = os.path.join(PROJECT_DIR, "annotation", "images", "icon.ico")
 # if 'bdist_msi' in sys.argv:
 #     sys.argv += ['--initial-target-dir', r'C:\Program Files\{}'.format(APP_NAME)]
 
-version = "1.4"
+version = "1.3"
 
 
 def collect_dist_info(packages):
@@ -52,7 +56,7 @@ packages = ['sys', 'os', 'ctypes', 'platform', 'shutil', 'numpy', 'traits', 'tra
             'pyface', 'pyface.ui', 'pyface.ui.qt4', 'pkg_resources', 'pyface.qt.QtGui', 'pyface.qt.QtCore',
             'pkg_resources._vendor', 'pkg_resources.extern', "tvtk.pyface.ui.qt4", 'pygments', 'vtkmodules',
             'pyface.ui.qt4', 'pyface.qt', 'numpy', 'matplotlib', 'mayavi', 'traits', 'traitsui',
-            'scipy.linalg', 'PyQt5', 'pyface']
+            'scipy.linalg', 'PyQt5', 'pyface', 'cv2', 'scipy']
 
 
 def get_site_package(name):
@@ -64,10 +68,28 @@ include_files = collect_dist_info(packages_dist_info)
 # fix for scipy
 scipy_path = os.path.dirname(scipy.__file__)
 include_files.append((str(scipy_path), "scipy"))
+include_files.append((f"{scipy_path}.libs", os.path.join("lib", "scipy.libs")))
+
+# fix for sklearn
+sklearn_path = os.path.dirname(sklearn.__file__)
+include_files.append((f"{sklearn_path}", os.path.join("lib", "sklearn")))
+
+include_files.append((
+    os.path.join(f"{sklearn_path}", ".libs", "vcomp140.dll"),
+    os.path.join("lib", "sklearn", ".libs", "vcomp140.dll")
+))
 
 # fix for skimage
 skimage_path = os.path.dirname(skimage.__file__)
-include_files.append((str(skimage_path), "skimage"))
+include_files.append((str(skimage_path), os.path.join("lib", "skimage")))
+
+# fix for pywt
+pywt_path = os.path.dirname(pywt.__file__)
+include_files.append((str(pywt_path), os.path.join("lib", "pywt")))
+
+# fix for pydicom
+pydicom_path = os.path.dirname(pydicom.__file__)
+include_files.append((str(pydicom_path), os.path.join("lib", "pydicom")))
 
 # fix for mpl_toolkits
 include_files.append(get_site_package('mpl_toolkits'))
@@ -77,11 +99,13 @@ include_files.append(get_site_package('mpl_toolkits'))
 distutils_path = os.path.join(os.path.dirname(opcode.__file__), 'distutils')
 include_files.append((distutils_path, 'distutils'))
 
+print(include_files)
+
 build_exe_options = {
     "packages": packages,
     "excludes": ['tkinter', 'multiprocessing.Pool'],
     "includes": [],
-    "include_files": include_files,
+    "include_files": include_files
 }
 
 executable = Executable(
@@ -103,5 +127,8 @@ setup(name=APP_NAME,
 
 # fix multiprocessing Pool.pyc --> pool.pyc
 # from https://github.com/marcelotduarte/cx_Freeze/issues/353#issuecomment-376829379
-multiprocessing_dir = os.path.join("build", "exe.win-amd64-3.9", "lib", "multiprocessing")
-os.rename(os.path.join(multiprocessing_dir, "Pool.pyc"), os.path.join(multiprocessing_dir, "pool.pyc"))
+# multiprocessing_dir = os.path.join("build", "exe.win-amd64-3.7", "lib", "multiprocessing")
+# os.rename(os.path.join(multiprocessing_dir, "Pool.pyc"), os.path.join(multiprocessing_dir, "pool.pyc"))
+
+
+# scipy.libs

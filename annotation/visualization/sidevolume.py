@@ -1,5 +1,6 @@
 from PyQt5 import QtWidgets, QtCore
 from pyface.qt import QtGui
+import cv2
 
 from annotation.utils.margin import WIDGET_MARGIN
 import annotation.utils.colors as col
@@ -25,6 +26,7 @@ class CanvasSideVolume(SplineCanvas):
         self.auto_propagate = False
         self.show_mask_spline = False
         self.show_cp_boxes = True
+        self.show_network_prediction = False
 
         # action
         self.action = None
@@ -34,7 +36,32 @@ class CanvasSideVolume(SplineCanvas):
 
 
     def set_img(self, mousePos=None):
-        self.img = self.arch_handler.get_side_volume_slice(self.current_pos)
+        self.img = self.arch_handler.get_side_volume_slice(self.current_pos, show_network_prediction=self.show_network_prediction)
+        original_shape = self.img.shape
+
+        if self.zoom_pos[0] > original_shape[0]: self.zoom_pos[0] = original_shape[0] - 1
+        if self.zoom_pos[1] > original_shape[1]: self.zoom_pos[1] = original_shape[1] - 1
+
+        self.img = cv2.resize(
+            self.img,
+            (self.img.shape[1] * self.zoom, self.img.shape[0] * self.zoom),
+            interpolation=cv2.INTER_AREA
+        )
+        sx = self.zoom_pos[1]*self.zoom
+        sy = self.zoom_pos[0]*self.zoom
+
+        sx, sy = int(sx), int(sy)
+        if sx+original_shape[0] > self.img.shape[0]:
+            sx = self.img.shape[0] - original_shape[0]
+            self.zoom_pos[1] = sx / self.zoom
+        if sy+original_shape[1] > self.img.shape[1]:
+            sy = self.img.shape[1] - original_shape[1]
+            self.zoom_pos[0] = sy / self.zoom
+
+        self.img = self.img[
+                   sx:sx+original_shape[0],
+                   sy:sy+original_shape[1]
+        ]
         self.pixmap = numpy2pixmap(self.img, mousePos, self.squareSize)
         self.adjust_size()
 
@@ -45,7 +72,7 @@ class CanvasSideVolume(SplineCanvas):
         qp.end()
 
     def extract_x_z_LR(self):
-        x = WIDGET_MARGIN + self.pixmap.width() // 2
+        x = self.pixmap.width() // 2
         z = None
         LR = None
 
@@ -53,17 +80,17 @@ class CanvasSideVolume(SplineCanvas):
         p, start, end = self.arch_handler.L_canal_spline.get_poly_spline()
         if p is not None and self.current_pos in range(int(start), int(end)):
             LR = "L"
-            z = WIDGET_MARGIN + p(self.current_pos) * self.arch_handler.side_volume_scale
+            z = p(self.current_pos) * self.arch_handler.side_volume_scale
 
         # check intersection with R spline
         p, start, end = self.arch_handler.R_canal_spline.get_poly_spline()
         if p is not None and self.current_pos in range(int(start), int(end)):
             LR = "R"
-            z = WIDGET_MARGIN + p(self.current_pos) * self.arch_handler.side_volume_scale
-
-        if z is None:
-            return x, z, LR
-
+            z = p(self.current_pos) * self.arch_handler.side_volume_scale
+        x, z = self.xy_to_xzyz(x, z)
+        x += WIDGET_MARGIN
+        if z is not None:
+            z += WIDGET_MARGIN
         return x, z, LR
 
     def draw_dot(self, painter, x, z, LR):
@@ -95,7 +122,8 @@ class CanvasSideVolume(SplineCanvas):
 
     def cp_clicked(self, spline, mouse_x, mouse_y):
         for cp_index, (point_x, point_y) in enumerate(spline.cp):
-            if abs(point_x - mouse_x) < self.l // 2 and abs(point_y - mouse_y) < self.l // 2:
+
+            if abs(point_x - mouse_x) < self.l / (self.zoom + 1) and abs(point_y - mouse_y) < self.l / (self.zoom + 1):
                 return cp_index
         return None
 
@@ -125,13 +153,16 @@ class CanvasSideVolume(SplineCanvas):
         self.drag_point = None
         self.action = None
         mouse_pos = QMouseEvent.pos()
-        mouse_x = mouse_pos.x() - WIDGET_MARGIN
-        mouse_y = mouse_pos.y() - WIDGET_MARGIN
+        mouse_x, mouse_y = mouse_pos.x(), mouse_pos.y()
+        mouse_x = mouse_x - WIDGET_MARGIN
+        mouse_y = mouse_y - WIDGET_MARGIN
+        mouse_x, mouse_y = self.xzyz_to_xy(mouse_x, mouse_y)
+
         spline = self.arch_handler.annotation_masks.get_mask_spline(self.current_pos) or \
                  self.arch_handler.annotation_masks.set_mask_spline(self.current_pos, ClosedSpline(), from_snake=False)
         if QMouseEvent.button() == QtCore.Qt.LeftButton:
             for cp_index, (point_x, point_y) in enumerate(spline.cp):
-                if abs(point_x - mouse_x) < self.l // 2 and abs(point_y - mouse_y) < self.l // 2:
+                if abs(point_x - mouse_x) < self.l / (self.zoom + 1) and abs(point_y - mouse_y) < self.l / (self.zoom + 1):
                     drag_x_offset = point_x - mouse_x
                     drag_y_offset = point_y - mouse_y
                     self.drag_point = (cp_index, (drag_x_offset, drag_y_offset))
@@ -165,8 +196,10 @@ class CanvasSideVolume(SplineCanvas):
 
         if self.drag_point is not None and spline is not None:
             cp_index, (offset_x, offset_y) = self.drag_point
-            new_x = QMouseEvent.pos().x() - WIDGET_MARGIN + offset_x
-            new_y = QMouseEvent.pos().y() - WIDGET_MARGIN + offset_y
+            new_x = QMouseEvent.pos().x() - WIDGET_MARGIN
+            new_y = QMouseEvent.pos().y() - WIDGET_MARGIN
+            new_x, new_y = self.xzyz_to_xy(new_x, new_y)
+            new_x, new_y = new_x + offset_x, new_y + offset_y
 
             new_x = clip_range(new_x, 0, self.pixmap.width() - 1)
             new_y = clip_range(new_y, 0, self.pixmap.height() - 1)
@@ -197,13 +230,14 @@ class CanvasSideVolume(SplineCanvas):
         self.set_img(self.mouse_pos)
         self.update()
 
-    def show_(self, pos=0, show_dot=False, auto_propagate=False, show_mask_spline=False, show_cp_boxes=True, normalize_mouse_hover=True):
+    def show_(self, pos=0, show_dot=False, auto_propagate=False, show_mask_spline=False, show_cp_boxes=True, normalize_mouse_hover=True, show_network_prediction=False):
         self.current_pos = pos
         self.show_dot = show_dot
         self.auto_propagate = auto_propagate
         self.show_mask_spline = show_mask_spline
         self.show_cp_boxes = show_cp_boxes
         self.normalize_mouse_hover = normalize_mouse_hover
+        self.show_network_prediction = show_network_prediction
         if self.normalize_mouse_hover is not None:
             self.set_img(self.mouse_pos)
         else:
@@ -237,3 +271,4 @@ class SideVolume(QtGui.QWidget):
             self.label.update()
         except:
             pass
+

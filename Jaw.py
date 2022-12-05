@@ -27,6 +27,7 @@ class Jaw:
         if basename.lower() != 'dicomdir':
             raise Exception("ERROR: DICOMDIR PATH HAS TO END WITH DICOMDIR")
 
+        self.dicomdir_path = dicomdir_path
         self.dicom_dir = read_dicomdir(os.path.join(dicomdir_path))
         self.filenames, self.dicom_files, self.volume = dicom_from_dicomdir(self.dicom_dir)
         self.Z, self.H, self.W = self.volume.shape
@@ -58,7 +59,6 @@ class Jaw:
         self.__normalize()
         self.gt_volume = self.__build_ann_volume()
         self.HU_volume = self.convert_01_to_HU(self.volume)
-        self.generated = None
 
     def merge_predictions(self, plane, pred):
         """
@@ -263,7 +263,12 @@ class Jaw:
             plane = plane.get_plane()
 
         if cut_gt:
-            interp_fn = lambda z, x, y: self.gt_volume[int(z), int(y), int(x)]  # nearest
+            def interp_fn(z,x,y):
+                z, y, x = int(z), int(y), int(x)
+                if z >= self.real_gt_volume.shape[0]: z=self.real_gt_volume.shape[0]-1
+                if y >= self.real_gt_volume.shape[1]: y=self.real_gt_volume.shape[1]-1
+                if x >= self.real_gt_volume.shape[2]: x=self.real_gt_volume.shape[2]-1
+                return self.real_gt_volume[int(z), int(y), int(x)]  # nearest
         else:
             interp_fn = getattr(self, interp_fn)
 
@@ -382,6 +387,7 @@ class Jaw:
         P4 = self.volume[:, y2, x2] * dx * dy
         return P1 + P2 + P3 + P4
 
+    # WHY Z X Y INSTEAD OF SOME MORE HUMAN ORDER?
     def trilinear_interpolation(self, z_func, x_func, y_func):
         """
         perform a trilinear interpolation, distance between image pixel is always 1 and is omitted

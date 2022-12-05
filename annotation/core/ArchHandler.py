@@ -32,7 +32,8 @@ class ArchHandler(Jaw, metaclass=SingletonMeta):
     ANNOTATED_DICOM_DIRECTORY = 'annotated_dicom'
     EXPORT_GT_VOLUME_FILENAME = 'gt_volume.npy'
     EXPORT_VOLUME_FILENAME = 'volume.npy'
-    EXPORT_GENERATED_FILENAME = 'generated.npy'
+    GT_ALPHA_FILENAME = 'gt_alpha.npy'
+    GENERATED_FILENAME = 'generated.npy'
 
     SIDE_VOLUME_SCALE = 4  # desired scale of side_volume
 
@@ -84,8 +85,18 @@ class ArchHandler(Jaw, metaclass=SingletonMeta):
         self.canal = None
         self.gt_delaunay = np.zeros_like(self.gt_volume)
         self.gt_extracted = False
+        self.generated = None
         self.from_annotations = False
 
+        # Looking for gt_alpha, generated otherwise, zerolike as a fallback
+        gt_or_gen_path = os.path.join(os.path.dirname(self.dicomdir_path), self.GT_ALPHA_FILENAME)
+        if not os.path.isfile(gt_or_gen_path):
+            gt_or_gen_path = os.path.join(os.path.dirname(self.dicomdir_path), self.GENERATED_FILENAME)
+        if not os.path.isfile(gt_or_gen_path):
+            self.real_gt_volume = np.zeros_like(self.gt_volume)
+            self.generated = None
+        else:
+            self.real_gt_volume = np.load(gt_or_gen_path)
         self.import_gen_volume()
 
     ####################
@@ -123,6 +134,7 @@ class ArchHandler(Jaw, metaclass=SingletonMeta):
         h_arch = self.arch.get_offsetted(-1)
         l_arch = self.arch.get_offsetted(1)
         self.LH_pano_arches = (l_arch, h_arch)
+        self.import_gen_volume()
 
     def compute_initial_state(self, selected_slice=0, data=None, want_side_volume=True):
         """
@@ -138,6 +150,11 @@ class ArchHandler(Jaw, metaclass=SingletonMeta):
         self.compute_side_coords()
         tilted = self.history.has(TiltedPlanesAnnotationAction)
         want_side_volume and self.compute_side_volume(self.side_volume_scale, tilted=tilted)
+
+    def update_splines(self):
+        labels = self.extract_canal_mask_labels_Z()
+        self.L_canal_spline = self.extract_canal_spline(labels, 1)
+        self.R_canal_spline = self.extract_canal_spline(labels, 2)
 
     def update_coords(self):
         """Updates the current arch after the changes in the spline."""
@@ -197,7 +214,6 @@ class ArchHandler(Jaw, metaclass=SingletonMeta):
             return
 
         self.side_volume_scale = self.SIDE_VOLUME_SCALE if scale is None else scale
-
         if tilted:
             self.side_volume = TiltedSideVolume(self, self.side_volume_scale)
         else:
@@ -359,10 +375,11 @@ class ArchHandler(Jaw, metaclass=SingletonMeta):
     def load_state(self):
         """Loads state for ArchHandler, with History and AnnotationsMasks"""
         path = os.path.join(os.path.dirname(self.dicomdir_path), self.DUMP_FILENAME)
+
         with open(path, "r") as infile:
             data = json.load(infile)
 
-        self.history.load_()
+        #self.history.load_()
         self.compute_initial_state(0, data)
         self.annotation_masks.load_mask_splines()
 
@@ -401,7 +418,7 @@ class ArchHandler(Jaw, metaclass=SingletonMeta):
     def import_gen_volume(self):
         """Import generated npy file and stores it in generated attributed"""
         if self.generated is not None: return
-        path = os.path.join(os.path.dirname(self.dicomdir_path), self.EXPORT_GENERATED_FILENAME)
+        path = os.path.join(os.path.dirname(self.dicomdir_path), self.GENERATED_FILENAME)
         if os.path.isfile(path):
             self.generated = np.load(path)
 
@@ -444,10 +461,16 @@ class ArchHandler(Jaw, metaclass=SingletonMeta):
         gt_canal = filter_volume_Z_axis(self.gt_volume, mask)
         z, y, x = get_coords_by_label_3D(gt_canal, 1)
         p, start, end = get_poly_approx_(x, z)
+        if label == 1:
+            start = 0
+        else:
+            end = self.gt_volume.shape[-1]
+
         coords = []
         for i, (x_, y_) in enumerate(self.arch.get_arch()):
             if int(start) < x_ < int(end):
                 z_ = p(x_)
+                if z_ < 0 or z_ > self.gt_volume.shape[0]: continue
                 coords.append((i, z_))
         return Spline(coords=coords, num_cp=10)
 
@@ -472,9 +495,16 @@ class ArchHandler(Jaw, metaclass=SingletonMeta):
 
         z, y, x = get_coords_by_label_3D(gt, 1)
         p, start, end = get_poly_approx_(x, y)
+
+        # draw along all the shape dim, to avoid canal losses
+        start = 0
+        end = gt.shape[-1]
+
         self.arch_detections.set(self.selected_slice, (p, start, end))
         if p is not None:
             self.coords = processing.arch_lines(p, start, end, offset=self.LH_OFFSET)
+            valid_coords = [self.coords[1][0]] + [c for c in self.coords[1][1:-1] if c[1] > 0 and c[1] < gt.shape[1]] + [self.coords[1][-1]]
+            self.coords = (self.coords[0], valid_coords, self.coords[1], self.coords[2])
             self.spline = Spline(coords=self.coords[1], num_cp=10)
             self.update_coords()
             self.arch.update(self.coords[1])
@@ -580,5 +610,8 @@ class ArchHandler(Jaw, metaclass=SingletonMeta):
     def get_jaw_with_delaunay(self):
         return self.volume + self.gt_delaunay if self.gt_delaunay.any() else None
 
-    def get_side_volume_slice(self, pos):
-        return self.side_volume.get_slice(pos)
+    def get_side_volume_slice(self, pos, show_network_prediction=False):
+        return self.side_volume.get_slice(pos, show_network_prediction)
+
+    def get_gt_volume_slice(self, pos):
+        return self.side_volume.gt[pos]

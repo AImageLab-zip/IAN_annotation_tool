@@ -34,7 +34,7 @@ def fix_overflow(img, coords):
     return coords
 
 
-def get_poly_approx(coords):
+def get_poly_approx(coords, degree=2):
     """
     Computes the polynomial approximation of a curve.
 
@@ -49,12 +49,12 @@ def get_poly_approx(coords):
             return None, None, None
         x = [x for x, y in coords]
         y = [y for x, y in coords]
-        return get_poly_approx_(x, y)
+        return get_poly_approx_(x, y, degree)
     except:
         return None, None, None
 
 
-def get_poly_approx_(x, y):
+def get_poly_approx_(x, y, degree=2):
     """
     Computes the polynomial approximation of a curve, defined by two lists of x and y coordinates.
 
@@ -65,7 +65,7 @@ def get_poly_approx_(x, y):
     Returns:
         (np.poly1d, float, float): polynomial approximation, minimum x and maximum x
     """
-    pol = np.polyfit(x, y, 12)
+    pol = np.polyfit(x, y, degree)
     p = np.poly1d(pol)
     return p, min(x), max(x)
 

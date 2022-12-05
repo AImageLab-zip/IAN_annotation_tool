@@ -26,6 +26,7 @@ class Slider(QtGui.QWidget):
 
         if name:
             self.label = QtWidgets.QLabel(name)
+            #self.label.setFocusPolicy(QtCore.Qt.NoFocus)
             self.label.setAlignment(QtCore.Qt.AlignCenter)
             self.layout.addWidget(self.label)
 
@@ -33,8 +34,11 @@ class Slider(QtGui.QWidget):
 
         # widgets
         self.slider = QtWidgets.QSlider(orientation)
+        #self.slider.setFocusPolicy(QtCore.Qt.NoFocus)
         self.box = QtWidgets.QSpinBox()
+        #self.box.setFocusPolicy(QtCore.Qt.NoFocus)
         self.reset = QtWidgets.QPushButton("Reset")
+        #self.reset.setFocusPolicy(QtCore.Qt.NoFocus)
 
         # step settings
         self.setStep(step)

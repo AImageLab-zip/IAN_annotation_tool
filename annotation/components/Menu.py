@@ -1,3 +1,5 @@
+import subprocess
+
 from PyQt5 import QtCore
 from pyface.qt import QtGui
 
@@ -25,6 +27,9 @@ class Menu(QtGui.QWidget, metaclass=QObjectSingletonMeta):
     export_gt_volume = QtCore.pyqtSignal()
     apply_delaunay = QtCore.pyqtSignal()
 
+    # help
+    open_help = QtCore.pyqtSignal()
+
     def __init__(self, window):
         super(Menu, self).__init__(window)
         self.bar = window.menuBar()
@@ -43,6 +48,7 @@ class Menu(QtGui.QWidget, metaclass=QObjectSingletonMeta):
         self.add_menu_view()
         self.add_menu_annotation()
         self.add_menu_options()
+        self.add_menu_help()
 
         self.disable_(self.view)
         self.disable_(self.annotation)
@@ -50,6 +56,17 @@ class Menu(QtGui.QWidget, metaclass=QObjectSingletonMeta):
 
     def get(self):
         return self.bar
+
+    def add_menu_help(self):
+        self.help = self.bar.addMenu("&Help")
+        open_help_action = QtGui.QAction("&Open Guide", self)
+        open_help_action.setShortcut("F1")
+        open_help_action.triggered.connect(self.open_help.emit)
+        self.open_help.connect(self.open_pdf_help)
+        self.help.addAction(open_help_action)
+
+    def open_pdf_help(self):
+        subprocess.Popen(['guide.pdf'], shell=True)
 
     def add_menu_file(self):
         self.file = self.bar.addMenu("&File")
