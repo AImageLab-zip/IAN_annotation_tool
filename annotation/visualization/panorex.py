@@ -1,5 +1,6 @@
 from PyQt5 import QtWidgets, QtCore
 from pyface.qt import QtGui
+import cv2
 
 from annotation.utils.margin import WIDGET_MARGIN
 import annotation.utils.colors as col
@@ -26,6 +27,7 @@ class CanvasPanorex(SplineCanvas):
         self.current_pos = None
         self.arch_handler = ArchHandler()
         self.action = None
+        self.resize_factor = 2
 
     def set_img(self):
         self.img = self.arch_handler.get_panorex()
@@ -160,6 +162,13 @@ class CanvasPanorex(SplineCanvas):
         self.current_pos = pos
         self.set_img()
         self.update()
+
+    def adjust_size(self):
+        """Applies a fix to thw widget shape to show the image properly"""
+        if self.img is None:
+            return
+        self.setFixedSize((self.img.shape[1] + self.MARGIN),
+                          self.img.shape[0] + self.MARGIN)
 
 
 class SinglePanorex(QtGui.QWidget):

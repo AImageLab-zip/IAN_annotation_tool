@@ -244,6 +244,18 @@ class CanvasSideVolume(SplineCanvas):
             self.set_img()
         self.update()
 
+    def adjust_size(self):
+        """Applies a fix to thw widget shape to show the image properly"""
+        if self.img is None:
+            return
+        self.img = cv2.resize(
+            self.img,
+            (round(self.img.shape[1] * 0.75), round(self.img.shape[0] * 0.75)),
+            interpolation=cv2.INTER_AREA
+        )
+        self.setFixedSize((self.img.shape[1] + self.MARGIN),
+                          self.img.shape[0] + self.MARGIN)
+
 
 class SideVolume(QtGui.QWidget):
     def __init__(self, parent):

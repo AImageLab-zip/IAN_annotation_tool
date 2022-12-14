@@ -45,7 +45,7 @@ class Canvas(QtGui.QWidget, metaclass=AbstractQObjectMeta):
         """Applies a fix to thw widget shape to show the image properly"""
         if self.img is None:
             return
-        self.setFixedSize(self.img.shape[1] + self.MARGIN,
+        self.setFixedSize((self.img.shape[1] + self.MARGIN),
                           self.img.shape[0] + self.MARGIN)
 
     def set_zoom(self, zoom):

@@ -168,6 +168,7 @@ class AnnotationMasks():
             init = self.masks[from_idx]
             if init is None:
                 from_idx = idx + step
+                if len(self.masks) <= from_idx: return None
                 init = self.masks[from_idx]
             if init is not None:
                 #### TEST

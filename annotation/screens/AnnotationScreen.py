@@ -18,15 +18,15 @@ class AnnotationScreen(Screen):
         # panorex
         self.panorex = CanvasPanorex(self)
         self.panorex.spline_changed.connect(self._sidevolume_show)
-        self.layout.addWidget(self.panorex, 0, 0)
+        self.layout.addWidget(self.panorex, 0, 0, 1, 3, QtCore.Qt.AlignCenter)
 
         # side volume
         self.sidevolume = CanvasSideVolume(self)
-        self.layout.addWidget(self.sidevolume, 0, 1, 2, 1)
+        self.layout.addWidget(self.sidevolume, 1, 1, 2, 1)
 
         # non-zoomable sidevolume
         self.non_zoomable_sidevolume = CanvasSideVolume(self)
-        self.layout.addWidget(self.non_zoomable_sidevolume, 0, 2, 2, 1)
+        self.layout.addWidget(self.non_zoomable_sidevolume, 1, 2, 2, 1)
 
         # control panel
         self.panel = AnnotationControlPanel()
@@ -35,7 +35,7 @@ class AnnotationScreen(Screen):
         self.panel.reset_annotation_clicked.connect(self.reset_annotation_clicked_handler)
         self.panel.acquire_annotation_clicked.connect(self.acquire_annotation_clicked_handler)
         self.panel.acquire_annotation_from_prediction_clicked.connect(self.acquire_annotation_from_prediction_clicked_handler)
-        self.layout.addWidget(self.panel, 1, 0)
+        self.layout.addWidget(self.panel, 1, 0, 2, 1)
 
         self.right_arrow = QtWidgets.QShortcut(QtGui.QKeySequence.MoveToNextChar, self)
         self.left_arrow = QtWidgets.QShortcut(QtGui.QKeySequence.MoveToPreviousChar, self)
