@@ -1,4 +1,5 @@
-from PyQt5 import QtCore, QtWidgets, QtGui
+from PyQt5 import QtCore, QtWidgets
+from pyface.qt import QtGui
 
 from annotation.actions.Action import SideVolumeSplineResetAction, TiltedPlanesAnnotationAction, \
     DefaultPlanesAnnotationAction
@@ -10,6 +11,8 @@ from annotation.visualization.sidevolume import CanvasSideVolume
 class AnnotationScreen(Screen):
     def __init__(self, parent):
         super().__init__(parent)
+
+
         self.container.loaded.connect(self.show_)
         self.current_pos = 0
 

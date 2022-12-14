@@ -1,7 +1,9 @@
-from pyface.qt import QtGui
+from pyface.qt import QtGui, QtCore
+from PyQt5 import QtWidgets
 from annotation.screens.Window import Window
 import sys
 import warnings
+import os
 
 if not sys.warnoptions:
     warnings.simplefilter("ignore")

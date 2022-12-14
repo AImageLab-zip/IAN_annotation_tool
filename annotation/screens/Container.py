@@ -1,4 +1,4 @@
-from PyQt5 import QtCore
+from PyQt5 import QtCore, QtWidgets
 from pyface.qt import QtGui
 from conf import labels as l
 from annotation.components.Menu import Menu
@@ -6,6 +6,7 @@ from annotation.components.message.Messenger import Messenger
 from annotation.screens import Screen
 from annotation.screens.ArchSplineScreen import ArchSplineScreen
 from annotation.screens.PanorexSplineScreen import PanorexSplineScreen
+from annotation.screens.AnnotationScreen import AnnotationScreen
 from annotation.screens.SliceSelectionScreen import SliceSelectionScreen
 from annotation.components.Dialog3DPlot import Dialog3DPlot
 from annotation.core.ArchHandler import ArchHandler
@@ -42,7 +43,14 @@ class Container(QtGui.QWidget):
         w_extraction and self.setup_extraction()
         self.screen = ScreenClass(self)
         self.screen.start_()
+        if ScreenClass == AnnotationScreen:
+            scroll = QtWidgets.QScrollArea()
+            scroll.setWidget(self.screen)
+            scroll.setWidgetResizable(True)
+            #scroll.setFixedHeight(400)
+            return self.layout.addWidget(scroll)
         self.layout.addWidget(self.screen, 0, 0)
+
 
     def setup_extraction(self):
         self.mb.enable_save_load(True)

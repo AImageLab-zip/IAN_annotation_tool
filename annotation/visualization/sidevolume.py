@@ -33,10 +33,17 @@ class CanvasSideVolume(SplineCanvas):
 
         # contrast stretching square size
         self.squareSize = [30, 30]
+        self.scale_factor = 1
 
 
     def set_img(self, mousePos=None):
         self.img = self.arch_handler.get_side_volume_slice(self.current_pos, show_network_prediction=self.show_network_prediction)
+        if self.scale_factor != 1:
+            self.img = cv2.resize(
+                self.img,
+                (round(self.img.shape[1] * self.scale_factor), round(self.img.shape[0] * self.scale_factor)),
+                interpolation=cv2.INTER_AREA
+            )
         original_shape = self.img.shape
 
         if self.zoom_pos[0] > original_shape[0]: self.zoom_pos[0] = original_shape[0] - 1
@@ -44,19 +51,19 @@ class CanvasSideVolume(SplineCanvas):
 
         self.img = cv2.resize(
             self.img,
-            (self.img.shape[1] * self.zoom, self.img.shape[0] * self.zoom),
+            (round(self.img.shape[1] * self.zoom), round(self.img.shape[0] * self.zoom)),
             interpolation=cv2.INTER_AREA
         )
-        sx = self.zoom_pos[1]*self.zoom
-        sy = self.zoom_pos[0]*self.zoom
+        sx = self.zoom_pos[1]*self.zoom*self.scale_factor
+        sy = self.zoom_pos[0]*self.zoom*self.scale_factor
 
         sx, sy = int(sx), int(sy)
         if sx+original_shape[0] > self.img.shape[0]:
             sx = self.img.shape[0] - original_shape[0]
-            self.zoom_pos[1] = sx / self.zoom
+            self.zoom_pos[1] = sx / (self.zoom*self.scale_factor)
         if sy+original_shape[1] > self.img.shape[1]:
             sy = self.img.shape[1] - original_shape[1]
-            self.zoom_pos[0] = sy / self.zoom
+            self.zoom_pos[0] = sy / (self.zoom*self.scale_factor)
 
         self.img = self.img[
                    sx:sx+original_shape[0],
@@ -123,7 +130,7 @@ class CanvasSideVolume(SplineCanvas):
     def cp_clicked(self, spline, mouse_x, mouse_y):
         for cp_index, (point_x, point_y) in enumerate(spline.cp):
 
-            if abs(point_x - mouse_x) < self.l / (self.zoom + 1) and abs(point_y - mouse_y) < self.l / (self.zoom + 1):
+            if abs(point_x - mouse_x) < self.l / (self.scale_factor*(self.zoom + 1)) and abs(point_y - mouse_y) < self.l / (self.scale_factor*(self.zoom + 1)):
                 return cp_index
         return None
 
@@ -162,7 +169,7 @@ class CanvasSideVolume(SplineCanvas):
                  self.arch_handler.annotation_masks.set_mask_spline(self.current_pos, ClosedSpline(), from_snake=False)
         if QMouseEvent.button() == QtCore.Qt.LeftButton:
             for cp_index, (point_x, point_y) in enumerate(spline.cp):
-                if abs(point_x - mouse_x) < self.l / (self.zoom + 1) and abs(point_y - mouse_y) < self.l / (self.zoom + 1):
+                if abs(point_x - mouse_x) < self.l / (self.scale_factor*(self.zoom + 1)) and abs(point_y - mouse_y) < self.l / (self.scale_factor*(self.zoom + 1)):
                     drag_x_offset = point_x - mouse_x
                     drag_y_offset = point_y - mouse_y
                     self.drag_point = (cp_index, (drag_x_offset, drag_y_offset))
@@ -248,11 +255,7 @@ class CanvasSideVolume(SplineCanvas):
         """Applies a fix to thw widget shape to show the image properly"""
         if self.img is None:
             return
-        self.img = cv2.resize(
-            self.img,
-            (round(self.img.shape[1] * 0.75), round(self.img.shape[0] * 0.75)),
-            interpolation=cv2.INTER_AREA
-        )
+
         self.setFixedSize((self.img.shape[1] + self.MARGIN),
                           self.img.shape[0] + self.MARGIN)
 

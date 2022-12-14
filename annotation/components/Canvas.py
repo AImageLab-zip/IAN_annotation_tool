@@ -25,20 +25,21 @@ class Canvas(QtGui.QWidget, metaclass=AbstractQObjectMeta):
         self.setMouseTracking(True)
         self.installEventFilter(self)
         self.zoom = 1
+        self.scale = 1
         self.zoom_pos = [0,0]
 
     def xy_to_xzyz(self, x, y):
         if x is not None:
-            x = (x - self.zoom_pos[0]) * self.zoom
+            x = (x - self.zoom_pos[0]) * self.zoom * self.scale
         if y is not None:
-            y = (y - self.zoom_pos[1]) * self.zoom
+            y = (y - self.zoom_pos[1]) * self.zoom * self.scale
         return x, y
 
     def xzyz_to_xy(self, x, y):
         if x is not None:
-            x = x / self.zoom + self.zoom_pos[0]
+            x = x / (self.zoom*self.scale) + self.zoom_pos[0]
         if y is not None:
-            y = y / self.zoom + self.zoom_pos[1]
+            y = y / (self.zoom*self.scale) + self.zoom_pos[1]
         return x, y
 
     def adjust_size(self):
