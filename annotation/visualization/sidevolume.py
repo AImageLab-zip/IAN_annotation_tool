@@ -226,7 +226,12 @@ class CanvasSideVolume(SplineCanvas):
 
     def wheelEvent(self, event):
         multiplier = 1 if event.angleDelta().y() > 0 else -1
+        if event.angleDelta().y() == 0:
+            multiplier = 1 if event.angleDelta().x() > 0 else -1
+
         modifiers = QtWidgets.QApplication.keyboardModifiers()
+        if modifiers == QtCore.Qt.AltModifier or modifiers == (QtCore.Qt.ControlModifier | QtCore.Qt.AltModifier):
+            self.squareSize[0] += 1*multiplier
         if modifiers == QtCore.Qt.ShiftModifier or modifiers == (QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier):
             self.squareSize[0] += 1*multiplier
         if modifiers == QtCore.Qt.ControlModifier or modifiers == (QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier):
