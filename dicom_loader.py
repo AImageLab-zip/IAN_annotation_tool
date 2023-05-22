@@ -15,13 +15,18 @@ def dicom_from_dicomdir(dicom_dir):
             for series in all_series:
                 image_records = series.children
                 # load data only from the series *301???.dcm or *3001???.dcm
-                if bool(re.match("\w*30{1,2}1[0-9]{2,}\.dcm", image_records[0].ReferencedFileID)):
+                our_version_match = bool(re.match("\w*30{1,2}1[0-9]{2,}\.dcm", image_records[0].ReferencedFileID))
+                nth_version_match = bool(re.match("\d{4}", image_records[0].ReferencedFileID))
+                if our_version_match or nth_version_match:
+
                     image_filenames = [
                         image_rec.ReferencedFileID for image_rec in image_records
                     ]
                     datasets = [pydicom.dcmread(os.path.join(dataset_path, basename)) for basename in image_filenames]
                     # raw data stacked together
                     volume = np.stack([images.pixel_array for images in datasets])
+                    if len(volume.shape) > 3:
+                        volume = volume.squeeze()
                     return image_filenames, datasets, volume
             raise Exception('No valid series found, abort!')
     raise Exception('no valid patient or study found in the path, abort!')

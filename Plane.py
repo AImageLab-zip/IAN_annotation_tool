@@ -26,7 +26,7 @@ class Plane:
         self.plane = np.stack((
             np.tile(x_set, (self.Z, 1)),
             np.tile(y_set, (self.Z, 1)),
-            np.moveaxis(np.tile(np.arange(0, self.Z, dtype=np.float), (x_set.size, 1)), 0, 1)
+            np.moveaxis(np.tile(np.arange(0, self.Z, dtype=float), (x_set.size, 1)), 0, 1)
         ))
 
     def get_h_axis(self, z_level):

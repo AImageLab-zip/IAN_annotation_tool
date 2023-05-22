@@ -75,7 +75,7 @@ if __name__ == '__main__':
         if "DICOMDIR" in files:
             if args.clean:
                 clean(root)
-            side_volume_dir = os.path.join(root, "side_volume")
+            side_volume_dir = os.path.join(root, "d_side_volume")
             if args.forced:
                 delete_dir(side_volume_dir)
             if os.path.isdir(side_volume_dir) and not args.forced:

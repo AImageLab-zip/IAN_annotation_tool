@@ -24,7 +24,8 @@ class ArchDetections():
                 self.data[i] = self.arch_handler.get_arch_from_annotation()
             else:
                 self.data[i] = processing.arch_detection(self.arch_handler.volume[i])
-        except:
+        except Exception as e:
+            print(e)
             self.data[i] = None, None, None
 
     def get(self, i):

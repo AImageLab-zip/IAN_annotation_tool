@@ -23,7 +23,7 @@ def parse_args():
     parser.add_argument("-d", dest='dir', type=dir_path, required=True, help="Directory to explore to find DICOMDIR")
     parser.add_argument("-f", dest='forced', action='store_true', required=False, default=False,
                         help="Force re-computation even if gt_volume.npy already exists")
-    parser.add_argument("-w", dest='workers', type=int, required=False, default=cpu_count(),
+    parser.add_argument("-w", dest='workers', type=int, required=False, default=1,
                         help="Amount of workers for concurrent extraction")
     return parser.parse_args()
 
@@ -36,12 +36,9 @@ def delete_file(file_path):
 def export_gt_volume_npy(dicomdir):
     ah = ArchHandler(dicomdir)
     ah.__init__(dicomdir)
-    if ah.gt_volume.any() == True:
-        ah.compute_initial_state(96, want_side_volume=False)
-        ah.extract_data_from_gt(load_annotations=True)
-        ah.compute_side_volume(ah.SIDE_VOLUME_SCALE, True)
-    elif ah.is_there_data_to_load():
-        ah.load_state()
+    ah.load_state()
+
+    ah.export_sparse_volume()
     ah.export_gt_volume()
     ah.export_annotations_as_imgs()
 
@@ -52,6 +49,8 @@ if __name__ == '__main__':
 
     print("Analyzing {}".format(args.dir))
     for root, dirs, files in os.walk(args.dir):
+        # if os.path.basename(root) != "P1": continue
+        print(os.path.basename(root))
         if os.path.basename(root) == "annotated_dicom":
             continue
         if "DICOMDIR" in files:
@@ -60,8 +59,8 @@ if __name__ == '__main__':
             if args.forced:
                 delete_file(gt_volume_npy)
                 delete_file(volume_npy)
-            if os.path.isfile(gt_volume_npy) and os.path.isfile(volume_npy) and not args.forced:
-                continue
+            # if os.path.isfile(gt_volume_npy) and os.path.isfile(volume_npy) and not args.forced:
+            #     continue
             dicomdirs.append(os.path.join(root, "DICOMDIR"))
 
     num_dicoms = len(dicomdirs)

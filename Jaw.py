@@ -2,8 +2,10 @@ from annotation.utils.image import get_mask_by_label
 from conf import labels as l
 from dicom_loader import dicom_from_dicomdir
 import numpy as np
-from pydicom.filereader import read_dicomdir
+from pydicom.filereader import read_dicomdir, dcmread
 from pydicom.pixel_data_handlers.numpy_handler import pack_bits
+from pydicom.multival import MultiValue
+from pydicom.valuerep import DSfloat
 import os
 from pathlib import Path
 from Plane import Plane
@@ -28,7 +30,7 @@ class Jaw:
             raise Exception("ERROR: DICOMDIR PATH HAS TO END WITH DICOMDIR")
 
         self.dicomdir_path = dicomdir_path
-        self.dicom_dir = read_dicomdir(os.path.join(dicomdir_path))
+        self.dicom_dir = dcmread(os.path.join(dicomdir_path), force=True)
         self.filenames, self.dicom_files, self.volume = dicom_from_dicomdir(self.dicom_dir)
         self.Z, self.H, self.W = self.volume.shape
         self.HU_intercept, self.HU_slope = self.__get_HU_rescale_params()
@@ -36,8 +38,18 @@ class Jaw:
         # ADJUST WINDOW
         w = self.dicom_files[0].WindowWidth
         c = self.dicom_files[0].WindowCenter
-        ymax = c + (w / 2)
-        ymin = c - (w / 2)
+
+        if type(w) == MultiValue and type(c) == MultiValue:
+            # ChatGPT suggestion
+            ymax = c[1] + (w[1] / 2)
+            ymin = c[0] - (w[0] / 2)
+            c = c[0]
+            w = w[0]
+        elif type(w) == DSfloat and type(c) == DSfloat:
+            ymax = c + (w / 2)
+            ymin = c - (w / 2)
+        else:
+            raise Exception("Type of W and C are different or have a unexpected type.")
 
         tmp = self.volume * self.HU_slope + self.HU_intercept
         # windowing - no matter how you change data in tool, final_HU is the best input range and will be used when dumping volumes.npy
@@ -47,13 +59,14 @@ class Jaw:
         self.final_HU[tmp > (c - .5 + (w - 1) / 2)] = ymax
         print(self.final_HU.min(), print(self.final_HU.max()))
         # END ADJUST WINDOW
-
-        if self.dicom_files[1].ImagePositionPatient[-1] - self.dicom_files[0].ImagePositionPatient[-1] > 0:  # Z-axis has to be flipped
-            self.volume = np.flip(self.volume, 0)
-            self.final_HU = np.flip(self.final_HU, 0)
-            self.dicom_files.reverse()
-            self.filenames.reverse()
-
+        try:
+            if self.dicom_files[1].ImagePositionPatient[-1] - self.dicom_files[0].ImagePositionPatient[-1] > 0:  # Z-axis has to be flipped
+                self.volume = np.flip(self.volume, 0)
+                self.final_HU = np.flip(self.final_HU, 0)
+                self.dicom_files.reverse()
+                self.filenames.reverse()
+        except Exception:
+            pass
         self.__remove_quantiles()
         self.max_value = 0
         self.__normalize()

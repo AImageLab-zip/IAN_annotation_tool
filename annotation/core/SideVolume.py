@@ -14,6 +14,7 @@ class SideVolume():
     COORDS_FILENAME = "coords.npy"
     PLANES_FILENAME = "planes.npy"
     SAVE_DIRNAME = "d_side_volume"
+    # SAVE_DIRNAME = "side_volume"
 
     def __init__(self, arch_handler, scale):
         """
@@ -101,6 +102,7 @@ class SideVolume():
             msg = "Could not load side volume: one or more of these files is missing ({}, {}, {}, {})".format(
                 self.SIDE_VOLUME_FILENAME, self.SIDE_COORDS_FILENAME, self.COORDS_FILENAME, self.GT_SIDE_VOLUME_FILENAME)
             print(msg)
+            print(dir, sv, sc, co, gt)
             raise FileNotFoundError(msg)
 
         self._load_planes()
@@ -109,6 +111,7 @@ class SideVolume():
         co_ = np.load(co, allow_pickle=True)
         gt_ = np.load(gt)
 
+        print(f"sc: {sc}")
         if not np.array_equal(sc_, self.arch_handler.side_coords):
             msg = "Loaded side coords do not match with current side coords"
             print(msg)

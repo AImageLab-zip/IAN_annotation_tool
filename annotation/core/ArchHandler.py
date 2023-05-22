@@ -30,6 +30,7 @@ class ArchHandler(Jaw, metaclass=SingletonMeta):
     LH_OFFSET = 50
     DUMP_FILENAME = 'dump.json'
     ANNOTATED_DICOM_DIRECTORY = 'annotated_dicom'
+    EXPORT_SPARSE_VOLUME_FILENAME = 'gt_sparse.npy'
     EXPORT_GT_VOLUME_FILENAME = 'gt_volume.npy'
     EXPORT_VOLUME_FILENAME = 'volume.npy'
     GT_ALPHA_FILENAME = 'gt_alpha.npy'
@@ -397,18 +398,47 @@ class ArchHandler(Jaw, metaclass=SingletonMeta):
         """Saves annotations as images"""
         self.annotation_masks.export_mask_imgs()
 
-    def export_gt_volume(self):
+    def export_sparse_volume(self, forced=False):
+        sparse_path = os.path.join(os.path.dirname(self.dicomdir_path), self.EXPORT_SPARSE_VOLUME_FILENAME)
+        print(sparse_path)
+        if not os.path.exists(sparse_path) or forced:
+            sparse_annotation = self.get_gt_volume(labels=[0, 1])
+            np.save(sparse_path, sparse_annotation)
+        else:
+            print("skipping sparse")
+
+    def export_volume(self, forced=False):
+        volume_path = os.path.join(os.path.dirname(self.dicomdir_path), self.EXPORT_VOLUME_FILENAME)
+        if not os.path.exists(volume_path) or forced:
+            self.messenger.loading_message(
+                "Saving volume",
+                func=lambda: np.save(volume_path, self.get_volume(normalized=False))
+            )
+        else:
+            print("skipping volume")
+
+    def export_gt_volume(self, forced=False):
+        gt_path = os.path.join(os.path.dirname(self.dicomdir_path), self.EXPORT_GT_VOLUME_FILENAME)
+        volume_path = os.path.join(os.path.dirname(self.dicomdir_path), self.EXPORT_VOLUME_FILENAME)
+
         """Extracts annotations, builds gt_volume and saves it as npy file"""
         self.extract_3D_annotations()
-        self.messenger.loading_message(
-            "Saving ground truth volume",
-            func=lambda: np.save(os.path.join(os.path.dirname(self.dicomdir_path), self.EXPORT_GT_VOLUME_FILENAME),
-                                 self.gt_volume))
-        self.messenger.loading_message(
-            "Saving volume",
-            func=lambda: np.save(os.path.join(os.path.dirname(self.dicomdir_path), self.EXPORT_VOLUME_FILENAME),
-                                 self.get_volume(normalized=False))
-        )
+
+        if not os.path.exists(gt_path) or forced:
+            self.messenger.loading_message(
+                "Saving ground truth volume",
+                func=lambda: np.save(gt_path, self.gt_volume)
+            )
+        else:
+            print("skipping gt")
+
+        if not os.path.exists(volume_path) or forced:
+            self.messenger.loading_message(
+                "Saving volume",
+                func=lambda: np.save(volume_path, self.get_volume(normalized=False))
+            )
+        else:
+            print("skipping volume")
 
     def import_gt_volume(self):
         """Imports gt_volume npy file and stores it in gt_volume attribute"""

@@ -79,7 +79,7 @@ def arch_detection(slice, debug=False):
 
     th = 0.50
 
-    max_it = 20
+    max_it = 200
     step_l = 0.01
 
     # varying threshold until we white area is about 12%
@@ -103,7 +103,6 @@ def arch_detection(slice, debug=False):
 
         debug and viewer.plot_2D(cv2.threshold(arch, th, 1, cv2.THRESH_BINARY)[1].astype(np.uint8),
                                  title="th: {} - score: {}".format(th, score))
-
     # hole filling
     # kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (15, 15))
     # arch = cv2.morphologyEx(arch, cv2.MORPH_CLOSE, kernel)
