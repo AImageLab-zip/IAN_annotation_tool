@@ -51,7 +51,10 @@ class PanorexSplineScreen(Screen):
         self.arch_handler.update_coords()
         self.arch_handler.compute_side_coords()
         self.arch_handler.offset_arch()
-        self.arch_handler.update_splines()
+        try:
+            self.arch_handler.update_splines()
+        except ValueError as e:
+            print(e)
         self.show_()
 
     def skip_changed_handler(self, skip):
