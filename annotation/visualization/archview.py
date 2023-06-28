@@ -81,7 +81,11 @@ class SplineArchView(SplineCanvas):
             self.draw_points(painter, h_offset, col.ARCH_OFF_SPLINE)
 
         # draw spline with control points
-        self.draw_spline(painter, self.arch_handler.spline, col.ARCH_SPLINE, cp_box_color=col.ARCH_SPLINE_CP)
+        self.draw_spline(
+            painter,
+            self.arch_handler.spline,
+            col.ARCH_SPLINE,
+            cp_box_color=col.ARCH_SPLINE_CP,)
 
         # draw side_coords
         if self.current_pos is not None and self.show_LH_arch:

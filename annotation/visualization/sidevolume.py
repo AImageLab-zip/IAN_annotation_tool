@@ -289,6 +289,7 @@ class SideVolume(QtGui.QWidget):
             pixmap = numpy2pixmap(self.arch_handler.get_side_volume_slice(pos))
             self.label.setPixmap(pixmap)
             self.label.update()
-        except:
+        except Exception as e:
+            print(e)
             pass
 

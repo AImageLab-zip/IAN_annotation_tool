@@ -288,7 +288,13 @@ class Jaw:
         cut = np.zeros((self.Z, plane.shape[2]))
         for row in range(self.Z):
             for col in range(plane.shape[2]):
-                cut[row, col] = interp_fn(plane[2, row, col], plane[0, row, col], plane[1, row, col])  # z, x, y
+                z = plane[2, row, col]
+                x = plane[0, row, col]
+                y = plane[1, row, col]
+                if z < 0 or x < 0 or y < 0:
+                    cut[row, col] = 0
+                else:
+                    cut[row, col] = interp_fn(z, x, y)  # z, x, y
         return cut
 
     def create_panorex(self, coords, include_annotations=False):

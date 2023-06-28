@@ -175,7 +175,7 @@ class Spline():
                 arch_rgb[x, y] = (0, 1, 0)
         return arch_rgb
 
-    def get_poly_spline(self, degree=2):
+    def get_poly_spline(self, degree=12):
         """
         Returns a polynomial approximation of the spline
 

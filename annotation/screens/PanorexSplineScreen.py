@@ -38,7 +38,7 @@ class PanorexSplineScreen(Screen):
         self.mb.enable_save_load(True)
         self.arch_handler.offset_arch(pano_offset=0)
         self.panorex.set_img()
-        # self.panorex.set_can_edit_spline(not self.arch_handler.gt_extracted)
+        # self.panorex.set_can_edit_spline(self.arch_handler.gt_extracted)
         self.panorex.set_can_edit_spline(True)
         max_ = len(self.arch_handler.arch.get_arch()) - 1
 
