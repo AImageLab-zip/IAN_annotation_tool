@@ -9,6 +9,7 @@ import math
 
 
 class Spline():
+    SPLINE_DEGREE = 12
     def __init__(self, *args, **kwargs):
         """
         Class that manages a spline produced with the Catmull-Rom algorithm.
@@ -175,7 +176,9 @@ class Spline():
                 arch_rgb[x, y] = (0, 1, 0)
         return arch_rgb
 
-    def get_poly_spline(self, degree=12):
+    def get_poly_spline(self, degree=None):
+        if degree is None:
+            degree = self.SPLINE_DEGREE
         """
         Returns a polynomial approximation of the spline
 
@@ -204,6 +207,8 @@ class Spline():
             (dict): summary
         """
         data = {}
+
+        data['degree'] = self.SPLINE_DEGREE
         data['num_cp'] = self.num_cp
         data['cp'] = [{'x': float(cp[0]),
                        'y': float(cp[1])}
@@ -219,6 +224,12 @@ class Spline():
             build_spline (bool): whether to compute the spline or not
         """
         self.num_cp = data['num_cp']
+
+        if 'degree' in data.keys():
+            self.SPLINE_DEGREE = data['degree']
+        else:
+            self.SPLINE_DEGREE = 2
+
         self.cp = [(cp['x'], cp['y']) for cp in data['cp']]
         if build_spline:
             self.build_spline()

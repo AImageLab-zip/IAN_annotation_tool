@@ -273,7 +273,7 @@ class TiltedSideVolume(SideVolume):
         """Computes the tilted images on a give spline (left or right)"""
         if spline is None:
             return
-        p, start, end = spline.get_poly_spline(degree=12)
+        p, start, end = spline.get_poly_spline()
         derivative = np.polyder(p, 1)
         for x in range(self.data.shape[0]):
             if x in range(int(start), int(end)):

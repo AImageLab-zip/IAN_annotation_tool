@@ -28,6 +28,7 @@ from scipy.optimize import fsolve
 
 class ArchHandler(Jaw, metaclass=SingletonMeta):
     LH_OFFSET = 50
+    SPLINE_DEGREE = 12
     DUMP_FILENAME = 'dump.json'
     ANNOTATED_DICOM_DIRECTORY = 'annotated_dicom'
     EXPORT_SPARSE_VOLUME_FILENAME = 'gt_sparse.npy'

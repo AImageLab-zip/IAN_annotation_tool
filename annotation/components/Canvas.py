@@ -237,7 +237,7 @@ class SplineCanvas(Canvas, metaclass=AbstractQObjectMeta):
         if spline is None:
             return
 
-        p, start, end = spline.get_poly_spline(degree=12)
+        p, start, end = spline.get_poly_spline()
         if spline_color == col.L_CANAL_SPLINE:
             start = 0
         else:
